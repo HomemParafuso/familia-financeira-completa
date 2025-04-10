@@ -22,7 +22,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { Transaction } from '@/types/finance';
+import { Transaction, RecurrencePeriod } from '@/types/finance';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGroup } from '@/contexts/GroupContext';
@@ -46,7 +46,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ initialData, onClose 
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>(initialData?.tags || []);
   const [isRecurring, setIsRecurring] = useState(!!initialData?.recurring);
-  const [recurringFrequency, setRecurringFrequency] = useState(initialData?.recurring?.frequency || 'monthly');
+  const [recurringFrequency, setRecurringFrequency] = useState<RecurrencePeriod>(
+    (initialData?.recurring?.frequency as RecurrencePeriod) || 'monthly'
+  );
   
   // Filter categories based on transaction type
   const filteredCategories = categories.filter(c => c.type === type);
@@ -68,7 +70,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ initialData, onClose 
       tags,
       ...(isRecurring ? {
         recurring: {
-          frequency: recurringFrequency as 'daily' | 'weekly' | 'monthly' | 'yearly',
+          frequency: recurringFrequency,
         }
       } : {})
     };
@@ -252,7 +254,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ initialData, onClose 
           {isRecurring && (
             <Select
               value={recurringFrequency}
-              onValueChange={(value) => setRecurringFrequency(value)}
+              onValueChange={(value) => setRecurringFrequency(value as RecurrencePeriod)}
             >
               <SelectTrigger id="recurringFrequency">
                 <SelectValue placeholder="Frequência" />

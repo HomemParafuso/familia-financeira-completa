@@ -76,7 +76,6 @@ const BudgetsPage: React.FC = () => {
                   <Progress
                     value={progress > 100 ? 100 : progress}
                     className={isOverBudget ? "bg-red-200" : ""}
-                    indicatorClassName={isOverBudget ? "bg-red-500" : ""}
                   />
                   {isOverBudget && (
                     <div className="text-xs text-red-500 font-medium">
