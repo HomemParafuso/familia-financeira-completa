@@ -14,6 +14,10 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
 import TransactionsPage from "./pages/TransactionsPage";
+import BudgetsPage from "./pages/BudgetsPage";
+import CategoriesPage from "./pages/CategoriesPage";
+import ReportsPage from "./pages/ReportsPage";
+import SettingsPage from "./pages/SettingsPage";
 import GroupsPage from "./pages/GroupsPage";
 import NotFound from "./pages/NotFound";
 
@@ -45,6 +49,26 @@ const App = () => (
                 <Route path="/transactions" element={
                   <ProtectedRoute>
                     <TransactionsPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/budgets" element={
+                  <ProtectedRoute>
+                    <BudgetsPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/categories" element={
+                  <ProtectedRoute>
+                    <CategoriesPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/reports" element={
+                  <ProtectedRoute>
+                    <ReportsPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/settings" element={
+                  <ProtectedRoute>
+                    <SettingsPage />
                   </ProtectedRoute>
                 } />
                 <Route path="/groups" element={
