@@ -1,4 +1,3 @@
-
 export interface Transaction {
   id: string;
   type: 'income' | 'expense';
@@ -20,6 +19,8 @@ export interface RecurringConfig {
   endDate?: string;
   lastProcessed?: string;
 }
+
+export type RecurrencePeriod = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 export interface Category {
   id: string;
