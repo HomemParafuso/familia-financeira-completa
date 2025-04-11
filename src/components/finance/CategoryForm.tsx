@@ -55,13 +55,21 @@ const CategoryForm: React.FC<CategoryFormProps> = ({ initialData, onClose }) => 
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
+    // Garantindo que todos os campos obrigatórios estejam presentes
+    const categoryData = {
+      name: values.name,
+      type: values.type,
+      color: values.color,
+      icon: values.icon
+    };
+
     if (initialData) {
       updateCategory({
         ...initialData,
-        ...values,
+        ...categoryData,
       });
     } else {
-      addCategory(values);
+      addCategory(categoryData);
     }
     onClose();
   };

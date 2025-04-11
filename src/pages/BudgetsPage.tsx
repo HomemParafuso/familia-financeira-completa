@@ -1,14 +1,27 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/Dashboard';
 import { useFinance } from '@/contexts/FinanceContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import BudgetForm from '@/components/finance/BudgetForm';
 
 const BudgetsPage: React.FC = () => {
   const { budgets, categories, isLoading } = useFinance();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Função para abrir o diálogo
+  const openBudgetDialog = () => {
+    setIsDialogOpen(true);
+  };
+
+  // Função para fechar o diálogo
+  const closeBudgetDialog = () => {
+    setIsDialogOpen(false);
+  };
 
   if (isLoading) {
     return (
@@ -27,7 +40,10 @@ const BudgetsPage: React.FC = () => {
           <h1 className="text-2xl font-bold">Orçamentos</h1>
           <p className="text-muted-foreground">Gerencie seus orçamentos mensais por categoria</p>
         </div>
-        <Button className="bg-finance-primary hover:bg-finance-primary/90">
+        <Button 
+          className="bg-finance-primary hover:bg-finance-primary/90"
+          onClick={openBudgetDialog}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Novo Orçamento
         </Button>
@@ -94,13 +110,26 @@ const BudgetsPage: React.FC = () => {
         {budgets.length === 0 && (
           <div className="col-span-full flex flex-col items-center justify-center p-8 text-center bg-muted/50 rounded-lg">
             <p className="mb-4 text-muted-foreground">Você ainda não criou nenhum orçamento.</p>
-            <Button className="bg-finance-primary hover:bg-finance-primary/90">
+            <Button 
+              className="bg-finance-primary hover:bg-finance-primary/90"
+              onClick={openBudgetDialog}
+            >
               <Plus className="mr-2 h-4 w-4" />
               Criar primeiro orçamento
             </Button>
           </div>
         )}
       </div>
+
+      {/* Diálogo para criar/editar orçamento */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Novo Orçamento</DialogTitle>
+          </DialogHeader>
+          <BudgetForm onClose={closeBudgetDialog} />
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
