@@ -56,26 +56,44 @@ const BudgetForm: React.FC<BudgetFormProps> = ({ initialData, onClose }) => {
   // Filtrar apenas categorias de despesa
   const expenseCategories = categories.filter(cat => cat.type === 'expense');
   
+  // Converter as datas de string para objeto Date se houver dados iniciais
+  const defaultValues = initialData 
+    ? {
+        ...initialData,
+        startDate: new Date(initialData.startDate),
+        endDate: initialData.endDate ? new Date(initialData.endDate) : undefined
+      }
+    : {
+        categoryId: '',
+        amount: 0,
+        period: 'monthly' as const,
+        startDate: new Date(),
+      };
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData || {
-      categoryId: '',
-      amount: 0,
-      period: 'monthly',
-      startDate: new Date(),
-    },
+    defaultValues,
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    // O campo "spent" começa zerado para novos orçamentos
     if (initialData) {
+      // Converter as datas para string antes de salvar
       updateBudget({
         ...initialData,
-        ...values,
+        categoryId: values.categoryId,
+        amount: values.amount,
+        period: values.period,
+        startDate: values.startDate.toISOString(),
+        endDate: values.endDate ? values.endDate.toISOString() : undefined,
       });
     } else {
+      // Novo orçamento
       addBudget({
-        ...values,
+        categoryId: values.categoryId,
+        amount: values.amount,
+        period: values.period,
+        startDate: values.startDate.toISOString(),
+        endDate: values.endDate ? values.endDate.toISOString() : undefined,
         spent: 0, // Inicia com 0 de gastos
       });
     }

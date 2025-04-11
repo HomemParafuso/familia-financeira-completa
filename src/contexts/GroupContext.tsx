@@ -81,6 +81,7 @@ export const GroupProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             'edit_transactions',
             'delete_transactions',
             'manage_categories',
+            'manage_budgets',
             'manage_members',
             'view_reports'
           ]

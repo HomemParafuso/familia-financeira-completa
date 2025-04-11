@@ -2,25 +2,71 @@
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/Dashboard';
 import { useFinance } from '@/contexts/FinanceContext';
+import { useGroup } from '@/contexts/GroupContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Plus, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import BudgetForm from '@/components/finance/BudgetForm';
+import { Budget } from '@/types/finance';
+import { toast } from 'sonner';
 
 const BudgetsPage: React.FC = () => {
-  const { budgets, categories, isLoading } = useFinance();
+  const { budgets, categories, isLoading, deleteBudget } = useFinance();
+  const { user } = useAuth();
+  const { currentGroup, canUserPerform } = useGroup();
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedBudget, setSelectedBudget] = useState<Budget | undefined>(undefined);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
-  // Função para abrir o diálogo
+  // Verifica se o usuário pode editar orçamentos
+  const canEditBudgets = canUserPerform('manage_categories');
+  
+  // Função para abrir o diálogo de criação
   const openBudgetDialog = () => {
+    setSelectedBudget(undefined);
     setIsDialogOpen(true);
+  };
+
+  // Função para abrir o diálogo de edição
+  const openEditBudgetDialog = (budget: Budget) => {
+    if (!canEditBudgets) {
+      toast.error("Você não tem permissão para editar orçamentos");
+      return;
+    }
+    
+    setSelectedBudget(budget);
+    setIsDialogOpen(true);
+  };
+
+  // Função para confirmar exclusão
+  const confirmDeleteBudget = (budget: Budget) => {
+    if (!canEditBudgets) {
+      toast.error("Você não tem permissão para excluir orçamentos");
+      return;
+    }
+    
+    setSelectedBudget(budget);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  // Função para deletar o orçamento selecionado
+  const handleDeleteBudget = () => {
+    if (selectedBudget) {
+      deleteBudget(selectedBudget.id);
+      setIsDeleteConfirmOpen(false);
+      setSelectedBudget(undefined);
+    }
   };
 
   // Função para fechar o diálogo
   const closeBudgetDialog = () => {
     setIsDialogOpen(false);
+    setSelectedBudget(undefined);
   };
 
   if (isLoading) {
@@ -66,8 +112,33 @@ const BudgetsPage: React.FC = () => {
                     />
                     <CardTitle>{category?.name || 'Categoria'}</CardTitle>
                   </div>
-                  <div className="text-sm font-medium">
-                    {budget.period.charAt(0).toUpperCase() + budget.period.slice(1)}
+                  <div className="flex items-center">
+                    <div className="text-sm font-medium mr-2">
+                      {budget.period.charAt(0).toUpperCase() + budget.period.slice(1)}
+                    </div>
+                    
+                    {canEditBudgets && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEditBudgetDialog(budget)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            <span>Editar</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => confirmDeleteBudget(budget)}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            <span>Excluir</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                 </div>
                 <CardDescription>
@@ -125,9 +196,34 @@ const BudgetsPage: React.FC = () => {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Novo Orçamento</DialogTitle>
+            <DialogTitle>
+              {selectedBudget ? 'Editar Orçamento' : 'Novo Orçamento'}
+            </DialogTitle>
           </DialogHeader>
-          <BudgetForm onClose={closeBudgetDialog} />
+          <BudgetForm 
+            initialData={selectedBudget} 
+            onClose={closeBudgetDialog} 
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de confirmação para excluir orçamento */}
+      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Confirmar exclusão</DialogTitle>
+          </DialogHeader>
+          <p className="py-4">
+            Tem certeza que deseja excluir este orçamento? Esta ação não pode ser desfeita.
+          </p>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteBudget}>
+              Excluir
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </DashboardLayout>

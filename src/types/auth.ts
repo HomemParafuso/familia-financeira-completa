@@ -35,6 +35,7 @@ export type Permission =
   | 'edit_transactions' 
   | 'delete_transactions'
   | 'manage_categories'
+  | 'manage_budgets'
   | 'manage_members'
   | 'view_reports';
 
