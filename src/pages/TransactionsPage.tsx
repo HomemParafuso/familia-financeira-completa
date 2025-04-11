@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -15,11 +16,33 @@ import TransactionForm from '@/components/finance/TransactionForm';
 import { Transaction } from '@/types/finance';
 import { useGroup } from '@/contexts/GroupContext';
 
+interface LocationState {
+  openAddDialog?: boolean;
+}
+
 const TransactionsPage: React.FC = () => {
   const { canUserPerform } = useGroup();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | undefined>(undefined);
+  
+  // Get location state to check if we should open the add dialog
+  const location = useLocation();
+  const locationState = location.state as LocationState;
+
+  // Check if user has permission to add transactions
+  const canAddExpenses = canUserPerform('add_expenses');
+  const canAddIncome = canUserPerform('add_income');
+  const canAddTransactions = canAddExpenses || canAddIncome;
+
+  // Open add dialog if navigated with state.openAddDialog = true
+  useEffect(() => {
+    if (locationState?.openAddDialog) {
+      setIsAddOpen(true);
+      // Clear the state to prevent dialog from reopening on page refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [locationState]);
 
   const handleEdit = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
@@ -34,7 +57,7 @@ const TransactionsPage: React.FC = () => {
           <Button 
             className="bg-finance-primary hover:bg-finance-primary/90"
             onClick={() => setIsAddOpen(true)}
-            disabled={!canUserPerform('add_expenses') && !canUserPerform('add_income')}
+            disabled={!canAddTransactions}
           >
             <Plus className="mr-1 h-4 w-4" />
             Nova Transação

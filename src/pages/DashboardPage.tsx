@@ -10,11 +10,13 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFinance } from '@/contexts/FinanceContext';
+import { useGroup } from '@/contexts/GroupContext';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { transactions } = useFinance();
+  const { canUserPerform } = useGroup();
   
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -29,6 +31,14 @@ const DashboardPage: React.FC = () => {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5);
 
+  // Check if user has permission to add transactions
+  const canAddTransactions = canUserPerform('add_expenses') || canUserPerform('add_income');
+
+  // Handle new transaction click
+  const handleNewTransaction = () => {
+    navigate('/transactions', { state: { openAddDialog: true } });
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -41,7 +51,8 @@ const DashboardPage: React.FC = () => {
           </div>
           <Button 
             className="bg-finance-primary hover:bg-finance-primary/90"
-            onClick={() => navigate('/transactions/new')}
+            onClick={handleNewTransaction}
+            disabled={!canAddTransactions}
           >
             <Plus className="mr-1 h-4 w-4" />
             Nova Transação
@@ -88,7 +99,8 @@ const DashboardPage: React.FC = () => {
                 <p className="text-muted-foreground">Nenhuma transação recente</p>
                 <Button 
                   className="mt-4 bg-finance-primary hover:bg-finance-primary/90"
-                  onClick={() => navigate('/transactions/new')}
+                  onClick={handleNewTransaction}
+                  disabled={!canAddTransactions}
                 >
                   <Plus className="mr-1 h-4 w-4" />
                   Adicionar Transação
