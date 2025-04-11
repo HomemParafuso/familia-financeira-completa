@@ -11,6 +11,7 @@ import { Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useGroup } from '@/contexts/GroupContext';
+import { toast } from 'sonner';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -32,10 +33,16 @@ const DashboardPage: React.FC = () => {
     .slice(0, 5);
 
   // Check if user has permission to add transactions
-  const canAddTransactions = canUserPerform('add_expenses') || canUserPerform('add_income');
+  const canAddExpenses = canUserPerform('add_expenses');
+  const canAddIncome = canUserPerform('add_income');
+  const canAddTransactions = canAddExpenses || canAddIncome;
 
   // Handle new transaction click
   const handleNewTransaction = () => {
+    if (!canAddTransactions) {
+      toast.error("Você não tem permissão para adicionar transações");
+      return;
+    }
     navigate('/transactions', { state: { openAddDialog: true } });
   };
 
@@ -52,7 +59,6 @@ const DashboardPage: React.FC = () => {
           <Button 
             className="bg-finance-primary hover:bg-finance-primary/90"
             onClick={handleNewTransaction}
-            disabled={!canAddTransactions}
           >
             <Plus className="mr-1 h-4 w-4" />
             Nova Transação
@@ -100,7 +106,6 @@ const DashboardPage: React.FC = () => {
                 <Button 
                   className="mt-4 bg-finance-primary hover:bg-finance-primary/90"
                   onClick={handleNewTransaction}
-                  disabled={!canAddTransactions}
                 >
                   <Plus className="mr-1 h-4 w-4" />
                   Adicionar Transação

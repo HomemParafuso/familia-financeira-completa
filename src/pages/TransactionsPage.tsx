@@ -15,6 +15,7 @@ import TransactionList from '@/components/finance/TransactionList';
 import TransactionForm from '@/components/finance/TransactionForm';
 import { Transaction } from '@/types/finance';
 import { useGroup } from '@/contexts/GroupContext';
+import { toast } from 'sonner';
 
 interface LocationState {
   openAddDialog?: boolean;
@@ -49,6 +50,14 @@ const TransactionsPage: React.FC = () => {
     setIsEditOpen(true);
   };
 
+  const handleAddTransaction = () => {
+    if (!canAddTransactions) {
+      toast.error("Você não tem permissão para adicionar transações");
+      return;
+    }
+    setIsAddOpen(true);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -56,8 +65,7 @@ const TransactionsPage: React.FC = () => {
           <h1 className="text-2xl font-bold">Transações</h1>
           <Button 
             className="bg-finance-primary hover:bg-finance-primary/90"
-            onClick={() => setIsAddOpen(true)}
-            disabled={!canAddTransactions}
+            onClick={handleAddTransaction}
           >
             <Plus className="mr-1 h-4 w-4" />
             Nova Transação
