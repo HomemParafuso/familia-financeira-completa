@@ -1,7 +1,7 @@
 
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthContextType, User } from '@/types/auth';
+import { AuthContextType, User, UserRole } from '@/types/auth';
 import { mockUsers } from '@/mockData';
 import { toast } from 'sonner';
 
@@ -19,7 +19,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const parsedUser = JSON.parse(savedUser);
       // Garantir que o usuário seja um administrador do sistema
       if (parsedUser && !parsedUser.role) {
-        parsedUser.role = 'admin';
+        parsedUser.role = 'admin' as UserRole;
       }
       setUser(parsedUser);
     }
@@ -41,9 +41,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       // Garantir que o usuário seja um administrador do sistema
-      const userWithAdminRole = { 
+      const userWithAdminRole: User = { 
         ...foundUser, 
-        role: 'admin' // Forçar todos os usuários logados a serem admin para teste
+        role: 'admin' as UserRole // Forçar todos os usuários logados a serem admin para teste
       };
 
       // Set the user in state and localStorage
@@ -76,7 +76,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         id: `u${Date.now()}`,
         name,
         email,
-        role: 'admin', // Todos os novos usuários são admin para facilitar teste
+        role: 'admin' as UserRole, // Todos os novos usuários são admin para facilitar teste
         createdAt: new Date().toISOString(),
       };
 
