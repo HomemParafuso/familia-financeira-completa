@@ -37,9 +37,12 @@ const DashboardPage: React.FC = () => {
   const canAddIncome = canUserPerform('add_income');
   const canAddTransactions = canAddExpenses || canAddIncome;
 
+  // Verifica se o usuário é administrador do sistema
+  const isSystemAdmin = user?.role === 'admin';
+
   // Handle new transaction click
   const handleNewTransaction = () => {
-    if (!canAddTransactions) {
+    if (!canAddTransactions && !isSystemAdmin) {
       toast.error("Você não tem permissão para adicionar transações");
       return;
     }

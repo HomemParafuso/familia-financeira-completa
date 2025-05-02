@@ -15,6 +15,7 @@ import TransactionList from '@/components/finance/TransactionList';
 import TransactionForm from '@/components/finance/TransactionForm';
 import { Transaction } from '@/types/finance';
 import { useGroup } from '@/contexts/GroupContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 interface LocationState {
@@ -23,6 +24,7 @@ interface LocationState {
 
 const TransactionsPage: React.FC = () => {
   const { canUserPerform } = useGroup();
+  const { user } = useAuth();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | undefined>(undefined);
@@ -35,6 +37,9 @@ const TransactionsPage: React.FC = () => {
   const canAddExpenses = canUserPerform('add_expenses');
   const canAddIncome = canUserPerform('add_income');
   const canAddTransactions = canAddExpenses || canAddIncome;
+  
+  // Verifica se o usuário é administrador do sistema
+  const isSystemAdmin = user?.role === 'admin';
 
   // Open add dialog if navigated with state.openAddDialog = true
   useEffect(() => {
@@ -51,12 +56,20 @@ const TransactionsPage: React.FC = () => {
   };
 
   const handleAddTransaction = () => {
-    if (!canAddTransactions) {
+    if (!canAddTransactions && !isSystemAdmin) {
       toast.error("Você não tem permissão para adicionar transações");
       return;
     }
     setIsAddOpen(true);
   };
+
+  console.log("User permissions:", { 
+    canAddExpenses, 
+    canAddIncome, 
+    canAddTransactions,
+    isSystemAdmin, 
+    userRole: user?.role 
+  });
 
   return (
     <DashboardLayout>

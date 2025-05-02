@@ -154,15 +154,41 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
   };
 
   const canUserPerform = (permission: Permission) => {
-    if (!user || !currentGroup) return false;
+    if (!user) return false;
+    
+    // Administradores do sistema sempre têm permissões totais
+    if (user.role === 'admin') return true;
+    
+    // Se não houver grupo selecionado, verificamos se é uma permissão pessoal
+    if (!currentGroup) {
+      // Para transações pessoais (sem grupo), permitimos operações básicas
+      if (permission === 'add_expenses' || 
+          permission === 'add_income' || 
+          permission === 'view_transactions' ||
+          permission === 'edit_transactions' ||
+          permission === 'delete_transactions') {
+        return true;
+      }
+      return false;
+    }
     
     const member = currentGroup.members.find(m => m.userId === user.id);
     if (!member) return false;
     
-    // Owners can do anything
+    // Proprietários do grupo podem fazer qualquer coisa dentro do grupo
     if (member.role === 'owner') return true;
     
-    // Check specific permission
+    // Administradores do grupo têm mais permissões
+    if (member.role === 'admin') {
+      // Adicione aqui quaisquer permissões que os administradores devem ter automaticamente
+      if (permission === 'view_transactions' ||
+          permission === 'add_expenses' ||
+          permission === 'add_income') {
+        return true;
+      }
+    }
+    
+    // Verificação das permissões específicas
     return member.permissions.includes(permission);
   };
 
