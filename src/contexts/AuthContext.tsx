@@ -5,6 +5,9 @@ import { AuthContextType, User, UserRole } from '@/types/auth';
 import { mockUsers } from '@/mockData';
 import { toast } from 'sonner';
 
+// Define the system administrator email
+const SYSTEM_ADMIN_EMAIL = "pabllo.tca@gmail.com";
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -17,10 +20,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const savedUser = localStorage.getItem('finanças-familiares-user');
     if (savedUser) {
       const parsedUser = JSON.parse(savedUser);
-      // Garantir que o usuário seja um administrador do sistema
-      if (parsedUser && !parsedUser.role) {
-        parsedUser.role = 'admin' as UserRole;
+      
+      // Assign the proper role based on email
+      if (parsedUser) {
+        if (parsedUser.email === SYSTEM_ADMIN_EMAIL) {
+          parsedUser.role = 'admin' as UserRole;
+        } else {
+          parsedUser.role = 'member' as UserRole;
+        }
       }
+      
       setUser(parsedUser);
     }
     setIsLoading(false);
@@ -40,15 +49,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error('Credenciais inválidas');
       }
 
-      // Garantir que o usuário seja um administrador do sistema
-      const userWithAdminRole: User = { 
+      // Set the proper role based on email
+      const userWithRole: User = { 
         ...foundUser, 
-        role: 'admin' as UserRole // Forçar todos os usuários logados a serem admin para teste
+        role: email === SYSTEM_ADMIN_EMAIL ? 'admin' as UserRole : 'member' as UserRole
       };
 
+      console.log(`User logged in: ${email} with role: ${userWithRole.role}`);
+
       // Set the user in state and localStorage
-      setUser(userWithAdminRole);
-      localStorage.setItem('finanças-familiares-user', JSON.stringify(userWithAdminRole));
+      setUser(userWithRole);
+      localStorage.setItem('finanças-familiares-user', JSON.stringify(userWithRole));
       toast.success('Login realizado com sucesso!');
       navigate('/dashboard');
     } catch (error: any) {
@@ -71,14 +82,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error('Email já cadastrado');
       }
 
-      // Create new user (in a real app, this would hash the password and save to DB)
+      // Create new user with proper role based on email
       const newUser: User = {
         id: `u${Date.now()}`,
         name,
         email,
-        role: 'admin' as UserRole, // Todos os novos usuários são admin para facilitar teste
+        role: email === SYSTEM_ADMIN_EMAIL ? 'admin' as UserRole : 'member' as UserRole,
         createdAt: new Date().toISOString(),
       };
+
+      console.log(`User registered: ${email} with role: ${newUser.role}`);
 
       // Set the user in state and localStorage
       setUser(newUser);

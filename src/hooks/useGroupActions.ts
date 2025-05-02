@@ -154,45 +154,59 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
   };
 
   const canUserPerform = (permission: Permission) => {
-    if (!user) return false;
+    if (!user) {
+      console.log("No user logged in, denying permission");
+      return false;
+    }
     
-    // Administradores do sistema sempre têm permissões totais
+    // System admin check
     if (user.role === 'admin') {
-      console.log("User is system admin, granting all permissions");
+      console.log(`User ${user.email} is system admin with role ${user.role}, granting all permissions`);
       return true;
     }
     
-    // Se não houver grupo selecionado, verificamos se é uma permissão pessoal
+    // If no group selected, check if it's a personal permission
     if (!currentGroup) {
-      // Para transações pessoais (sem grupo), permitimos operações básicas
+      // For personal transactions (no group), allow basic operations
       if (permission === 'add_expenses' || 
           permission === 'add_income' || 
           permission === 'view_transactions' ||
           permission === 'edit_transactions' ||
           permission === 'delete_transactions') {
+        console.log(`No current group, granting basic transaction permission ${permission} to user ${user.email}`);
         return true;
       }
+      console.log(`No current group, denying permission ${permission} to user ${user.email}`);
       return false;
     }
     
     const member = currentGroup.members.find(m => m.userId === user.id);
-    if (!member) return false;
+    if (!member) {
+      console.log(`User ${user.email} not found in group members, denying permission`);
+      return false;
+    }
     
-    // Proprietários do grupo podem fazer qualquer coisa dentro do grupo
-    if (member.role === 'owner') return true;
+    // Group owner check
+    if (member.role === 'owner') {
+      console.log(`User ${user.email} is group owner, granting all permissions`);
+      return true;
+    }
     
-    // Administradores do grupo têm mais permissões
+    // Group admin check
     if (member.role === 'admin') {
-      // Adicione aqui quaisquer permissões que os administradores devem ter automaticamente
+      // Add any permissions that group admins should have automatically
       if (permission === 'view_transactions' ||
           permission === 'add_expenses' ||
           permission === 'add_income') {
+        console.log(`User ${user.email} is group admin, granting basic permission ${permission}`);
         return true;
       }
     }
     
-    // Verificação das permissões específicas
-    return member.permissions.includes(permission);
+    // Check specific permissions
+    const hasPermission = member.permissions.includes(permission);
+    console.log(`User ${user.email} explicit permission check for ${permission}: ${hasPermission}`);
+    return hasPermission;
   };
 
   return {
