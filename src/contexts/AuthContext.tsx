@@ -16,7 +16,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Check for saved user in localStorage (simulating persistence)
     const savedUser = localStorage.getItem('finanças-familiares-user');
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      const parsedUser = JSON.parse(savedUser);
+      // Garantir que o usuário seja um administrador do sistema
+      if (parsedUser && !parsedUser.role) {
+        parsedUser.role = 'admin';
+      }
+      setUser(parsedUser);
     }
     setIsLoading(false);
   }, []);
@@ -35,9 +40,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error('Credenciais inválidas');
       }
 
+      // Garantir que o usuário seja um administrador do sistema
+      const userWithAdminRole = { 
+        ...foundUser, 
+        role: 'admin' // Forçar todos os usuários logados a serem admin para teste
+      };
+
       // Set the user in state and localStorage
-      setUser(foundUser);
-      localStorage.setItem('finanças-familiares-user', JSON.stringify(foundUser));
+      setUser(userWithAdminRole);
+      localStorage.setItem('finanças-familiares-user', JSON.stringify(userWithAdminRole));
       toast.success('Login realizado com sucesso!');
       navigate('/dashboard');
     } catch (error: any) {
@@ -65,7 +76,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         id: `u${Date.now()}`,
         name,
         email,
-        role: 'member', // Default role for new users
+        role: 'admin', // Todos os novos usuários são admin para facilitar teste
         createdAt: new Date().toISOString(),
       };
 

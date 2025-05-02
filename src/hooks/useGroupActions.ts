@@ -157,7 +157,10 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
     if (!user) return false;
     
     // Administradores do sistema sempre têm permissões totais
-    if (user.role === 'admin') return true;
+    if (user.role === 'admin') {
+      console.log("User is system admin, granting all permissions");
+      return true;
+    }
     
     // Se não houver grupo selecionado, verificamos se é uma permissão pessoal
     if (!currentGroup) {
