@@ -17,6 +17,7 @@ import { Transaction } from '@/types/finance';
 import { useGroup } from '@/contexts/GroupContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 interface LocationState {
   openAddDialog?: boolean;
@@ -25,6 +26,7 @@ interface LocationState {
 const TransactionsPage: React.FC = () => {
   const { canUserPerform } = useGroup();
   const { user } = useAuth();
+  const { addNotification } = useNotifications();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | undefined>(undefined);
@@ -63,6 +65,24 @@ const TransactionsPage: React.FC = () => {
     setIsAddOpen(true);
   };
 
+  // Handler para quando uma transação for adicionada com sucesso
+  const handleTransactionAdded = (transactionType: string, description: string) => {
+    addNotification(
+      'success',
+      `${transactionType === 'income' ? 'Receita' : 'Despesa'} adicionada`,
+      `A transação "${description}" foi adicionada com sucesso.`
+    );
+  };
+
+  // Handler para quando uma transação for editada com sucesso
+  const handleTransactionEdited = (description: string) => {
+    addNotification(
+      'info',
+      'Transação atualizada',
+      `A transação "${description}" foi atualizada com sucesso.`
+    );
+  };
+
   console.log("User permissions:", { 
     canAddExpenses, 
     canAddIncome, 
@@ -99,6 +119,10 @@ const TransactionsPage: React.FC = () => {
           </DialogHeader>
           <TransactionForm 
             onClose={() => setIsAddOpen(false)} 
+            onSuccess={(type, description) => {
+              handleTransactionAdded(type, description);
+              setIsAddOpen(false);
+            }}
           />
         </DialogContent>
       </Dialog>
@@ -114,7 +138,11 @@ const TransactionsPage: React.FC = () => {
           </DialogHeader>
           <TransactionForm 
             initialData={selectedTransaction} 
-            onClose={() => setIsEditOpen(false)} 
+            onClose={() => setIsEditOpen(false)}
+            onSuccess={(_, description) => {
+              handleTransactionEdited(description);
+              setIsEditOpen(false);
+            }}
           />
         </DialogContent>
       </Dialog>

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bell, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
 import AdminBadge from './AdminBadge';
+import NotificationsDropdown from './NotificationsDropdown';
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -44,10 +45,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen }) => {
       </div>
       
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <Bell className="h-5 w-5" />
-          <span className="sr-only">Notificações</span>
-        </Button>
+        <NotificationsDropdown />
         
         <div className="flex items-center gap-4">
           <AdminBadge />

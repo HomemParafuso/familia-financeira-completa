@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { FinanceProvider } from "./contexts/FinanceContext";
 import { GroupProvider } from "./contexts/GroupContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
 
 // Pages
 import Index from "./pages/Index";
@@ -34,60 +35,62 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <FinanceProvider>
-            <GroupProvider>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                
-                {/* Protected Routes */}
-                <Route path="/dashboard" element={
-                  <ProtectedRoute>
-                    <DashboardPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/transactions" element={
-                  <ProtectedRoute>
-                    <TransactionsPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/budgets" element={
-                  <ProtectedRoute>
-                    <BudgetsPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/categories" element={
-                  <ProtectedRoute>
-                    <CategoriesPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/reports" element={
-                  <ProtectedRoute>
-                    <ReportsPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/settings" element={
-                  <ProtectedRoute>
-                    <SettingsPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/groups" element={
-                  <ProtectedRoute>
-                    <GroupsPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin" element={
-                  <ProtectedRoute>
-                    <AdminPage />
-                  </ProtectedRoute>
-                } />
-                
-                {/* Catch all route */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </GroupProvider>
-          </FinanceProvider>
+          <NotificationProvider>
+            <FinanceProvider>
+              <GroupProvider>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
+                  
+                  {/* Protected Routes */}
+                  <Route path="/dashboard" element={
+                    <ProtectedRoute>
+                      <DashboardPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/transactions" element={
+                    <ProtectedRoute>
+                      <TransactionsPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/budgets" element={
+                    <ProtectedRoute>
+                      <BudgetsPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/categories" element={
+                    <ProtectedRoute>
+                      <CategoriesPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/reports" element={
+                    <ProtectedRoute>
+                      <ReportsPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/settings" element={
+                    <ProtectedRoute>
+                      <SettingsPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/groups" element={
+                    <ProtectedRoute>
+                      <GroupsPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/admin" element={
+                    <ProtectedRoute>
+                      <AdminPage />
+                    </ProtectedRoute>
+                  } />
+                  
+                  {/* Catch all route */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </GroupProvider>
+            </FinanceProvider>
+          </NotificationProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
