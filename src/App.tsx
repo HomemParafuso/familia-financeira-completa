@@ -19,6 +19,7 @@ import CategoriesPage from "./pages/CategoriesPage";
 import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
 import GroupsPage from "./pages/GroupsPage";
+import AdminPage from "./pages/AdminPage";
 import NotFound from "./pages/NotFound";
 
 // Auth protection HOC
@@ -74,6 +75,11 @@ const App = () => (
                 <Route path="/groups" element={
                   <ProtectedRoute>
                     <GroupsPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin" element={
+                  <ProtectedRoute>
+                    <AdminPage />
                   </ProtectedRoute>
                 } />
                 

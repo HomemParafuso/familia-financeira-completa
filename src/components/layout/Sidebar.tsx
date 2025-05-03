@@ -1,22 +1,18 @@
 
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import {
+  BarChart3,
   CreditCard,
-  LineChart,
-  ListTodo,
+  Home,
   PieChart,
   Settings,
+  Tag,
   Users,
-  Wallet,
-  XCircle
+  Shield
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useGroup } from '@/contexts/GroupContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -24,149 +20,113 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
-  const { user } = useAuth();
-  const { currentGroup, groups } = useGroup();
   const location = useLocation();
-
-  const menuItems = [
+  const { user } = useAuth();
+  
+  // Define navigation items
+  const navigationItems = [
     {
-      title: 'Visão Geral',
-      icon: <LineChart size={20} />,
+      name: 'Dashboard',
       href: '/dashboard',
+      icon: Home,
+      current: location.pathname === '/dashboard',
     },
     {
-      title: 'Transações',
-      icon: <CreditCard size={20} />,
+      name: 'Transações',
       href: '/transactions',
+      icon: CreditCard,
+      current: location.pathname === '/transactions',
     },
     {
-      title: 'Orçamentos',
-      icon: <Wallet size={20} />,
-      href: '/budgets',
-    },
-    {
-      title: 'Categorias',
-      icon: <ListTodo size={20} />,
+      name: 'Categorias',
       href: '/categories',
+      icon: Tag,
+      current: location.pathname === '/categories',
     },
     {
-      title: 'Relatórios',
-      icon: <PieChart size={20} />,
+      name: 'Orçamentos',
+      href: '/budgets',
+      icon: PieChart,
+      current: location.pathname === '/budgets',
+    },
+    {
+      name: 'Relatórios',
       href: '/reports',
+      icon: BarChart3,
+      current: location.pathname === '/reports',
     },
     {
-      title: 'Grupos',
-      icon: <Users size={20} />,
+      name: 'Grupos',
       href: '/groups',
+      icon: Users,
+      current: location.pathname === '/groups',
     },
     {
-      title: 'Configurações',
-      icon: <Settings size={20} />,
+      name: 'Configurações',
       href: '/settings',
+      icon: Settings,
+      current: location.pathname === '/settings',
     },
   ];
+  
+  // Add admin page only for admins
+  if (user?.role === 'admin') {
+    navigationItems.push({
+      name: 'Administração',
+      href: '/admin',
+      icon: Shield,
+      current: location.pathname === '/admin',
+    });
+  }
 
   return (
-    <div
-      className={cn(
-        'fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar border-r border-sidebar-border shadow-lg transition-transform duration-300 ease-in-out lg:shadow-none lg:translate-x-0',
-        isOpen ? 'translate-x-0' : '-translate-x-full'
-      )}
-    >
-      <div className="flex h-16 items-center justify-between px-4 border-b border-sidebar-border">
-        <Link to="/dashboard" className="flex items-center gap-2">
-          <CreditCard className="h-6 w-6 text-finance-primary" />
-          <span className="font-bold text-xl">Finanças Família</span>
-        </Link>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="lg:hidden"
-          onClick={onClose}
-          aria-label="Fechar menu"
-        >
-          <XCircle className="h-5 w-5" />
-        </Button>
-      </div>
-      
-      {user && currentGroup && (
-        <div className="px-4 py-2 bg-sidebar-accent">
-          <p className="text-sm font-medium">Grupo atual:</p>
-          <p className="font-semibold truncate">{currentGroup.name}</p>
+    <>
+      <div
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 w-64 transform bg-background transition-transform duration-300 ease-in-out lg:translate-x-0 lg:border-r lg:shadow-none',
+          isOpen ? 'translate-x-0 shadow-lg' : '-translate-x-full'
+        )}
+      >
+        <div className="flex h-16 items-center border-b px-4 lg:px-6">
+          <div className="flex items-center gap-2">
+            <CreditCard className="h-6 w-6 text-finance-primary" />
+            <span className="text-xl font-semibold tracking-tight">Finanças Familiares</span>
+          </div>
         </div>
-      )}
-
-      <ScrollArea className="flex-1 px-3 py-4">
-        <nav className="space-y-1">
-          {menuItems.map((item) => (
-            <Link
-              key={item.href}
+        <nav className="space-y-1 px-2 py-6">
+          {navigationItems.map((item) => (
+            <NavLink
+              key={item.name}
               to={item.href}
-              className={cn(
-                'flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent',
-                location.pathname === item.href
-                  ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                  : 'text-sidebar-foreground'
-              )}
+              className={({ isActive }) =>
+                cn(
+                  'group flex items-center rounded-md px-3 py-2 text-sm font-medium',
+                  isActive
+                    ? 'bg-muted text-foreground'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                )
+              }
+              onClick={() => {
+                if (window.innerWidth < 1024) {
+                  onClose();
+                }
+              }}
             >
-              <span className="mr-3">{item.icon}</span>
-              {item.title}
-            </Link>
+              <item.icon
+                className={cn(
+                  'mr-3 h-5 w-5',
+                  item.current
+                    ? 'text-foreground'
+                    : 'text-muted-foreground group-hover:text-foreground'
+                )}
+                aria-hidden="true"
+              />
+              {item.name}
+            </NavLink>
           ))}
         </nav>
-        
-        {groups.length > 1 && (
-          <>
-            <Separator className="my-4" />
-            <div className="space-y-1 py-2">
-              <h3 className="px-3 text-sm font-medium">Seus grupos</h3>
-              {groups.map((group) => (
-                <Link
-                  key={group.id}
-                  to={`/groups/${group.id}`}
-                  className={cn(
-                    'flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent',
-                    currentGroup?.id === group.id
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold'
-                      : 'text-sidebar-foreground'
-                  )}
-                >
-                  <Users className="mr-3 h-4 w-4" />
-                  <span className="truncate">{group.name}</span>
-                </Link>
-              ))}
-            </div>
-          </>
-        )}
-      </ScrollArea>
-      
-      <div className="p-4 border-t border-sidebar-border">
-        <div className="flex items-center gap-3">
-          {user ? (
-            <>
-              <div className="h-8 w-8 rounded-full bg-sidebar-accent flex items-center justify-center">
-                <span className="font-medium text-sm">
-                  {user.name
-                    .split(' ')
-                    .map((n) => n[0])
-                    .slice(0, 2)
-                    .join('')
-                    .toUpperCase()}
-                </span>
-              </div>
-              <div className="space-y-0.5 flex-1 overflow-hidden">
-                <p className="text-sm font-medium truncate">{user.name}</p>
-                <p className="text-xs text-sidebar-foreground/70 truncate">{user.email}</p>
-              </div>
-            </>
-          ) : (
-            <Button asChild variant="outline" size="sm" className="w-full">
-              <Link to="/login">Entrar</Link>
-            </Button>
-          )}
-        </div>
       </div>
-    </div>
+    </>
   );
 };
 
