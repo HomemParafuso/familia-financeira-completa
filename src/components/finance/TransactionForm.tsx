@@ -30,9 +30,10 @@ import { useGroup } from '@/contexts/GroupContext';
 interface TransactionFormProps {
   initialData?: Transaction;
   onClose: () => void;
+  onSuccess?: (type: string, description: string) => void;
 }
 
-const TransactionForm: React.FC<TransactionFormProps> = ({ initialData, onClose }) => {
+const TransactionForm: React.FC<TransactionFormProps> = ({ initialData, onClose, onSuccess }) => {
   const { categories, addTransaction, updateTransaction } = useFinance();
   const { user } = useAuth();
   const { currentGroup } = useGroup();
@@ -80,8 +81,16 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ initialData, onClose 
         ...initialData,
         ...transactionData,
       });
+      
+      if (onSuccess) {
+        onSuccess(type, description);
+      }
     } else {
       addTransaction(transactionData);
+      
+      if (onSuccess) {
+        onSuccess(type, description);
+      }
     }
     
     onClose();
