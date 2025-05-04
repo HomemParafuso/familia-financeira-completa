@@ -25,7 +25,7 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
         {
           userId: user.id,
           name: user.name,
-          role: 'owner',
+          role: 'admin',
           permissions: [
             'view_transactions',
             'add_expenses',
@@ -58,9 +58,12 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
   };
 
   const deleteGroup = (id: string) => {
-    // Only group owner can delete
+    // Only system admin or group admin can delete
     const group = groups.find(g => g.id === id);
-    if (!group || group.ownerId !== user?.id) {
+    if (!group) return;
+    
+    const currentUserInGroup = group.members.find(m => m.userId === user?.id);
+    if (!user || (user.role !== 'admin' && (!currentUserInGroup || currentUserInGroup.role !== 'admin'))) {
       toast.error('Você não tem permissão para excluir este grupo');
       return;
     }
@@ -126,14 +129,48 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
     toast.success('Permissões atualizadas com sucesso!');
   };
 
+  const updateMemberRole = (
+    groupId: string,
+    userId: string,
+    role: GroupMember['role']
+  ) => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return;
+    
+    const updatedMembers = group.members.map(member => 
+      member.userId === userId 
+        ? { ...member, role } 
+        : member
+    );
+    
+    const updatedGroup = {
+      ...group,
+      members: updatedMembers
+    };
+    
+    updateGroup(updatedGroup);
+    toast.success('Função do membro atualizada com sucesso!');
+  };
+
   const removeMember = (groupId: string, userId: string) => {
     const group = groups.find(g => g.id === groupId);
     if (!group) return;
     
-    // Cannot remove owner
-    if (group.ownerId === userId) {
-      toast.error('Não é possível remover o proprietário do grupo');
+    // Check if the current user has permission to remove members
+    const currentUserMember = group.members.find(m => m.userId === user?.id);
+    if (!currentUserMember || (currentUserMember.role !== 'admin' && user?.role !== 'admin')) {
+      toast.error('Você não tem permissão para remover membros');
       return;
+    }
+    
+    // Cannot remove the last admin of a group
+    const targetMember = group.members.find(m => m.userId === userId);
+    if (targetMember?.role === 'admin') {
+      const adminCount = group.members.filter(m => m.role === 'admin').length;
+      if (adminCount <= 1) {
+        toast.error('Não é possível remover o único administrador do grupo');
+        return;
+      }
     }
     
     const updatedGroup = {
@@ -143,6 +180,19 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
     
     updateGroup(updatedGroup);
     toast.success('Membro removido com sucesso!');
+  };
+
+  // User expiration management for system admin
+  const setUserExpiration = (userId: string, expirationDate: string) => {
+    // This function would normally update the user in a backend system
+    // For our mock implementation, we'll just show a toast notification
+    if (user?.role !== 'admin') {
+      toast.error('Apenas o administrador do sistema pode definir datas de expiração');
+      return;
+    }
+    
+    toast.success(`Data de expiração do usuário definida para ${new Date(expirationDate).toLocaleDateString('pt-BR')}`);
+    console.log(`User ${userId} expiration set to ${expirationDate}`);
   };
 
   // Helper functions
@@ -186,21 +236,10 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
       return false;
     }
     
-    // Group owner check
-    if (member.role === 'owner') {
-      console.log(`User ${user.email} is group owner, granting all permissions`);
-      return true;
-    }
-    
     // Group admin check
     if (member.role === 'admin') {
-      // Add any permissions that group admins should have automatically
-      if (permission === 'view_transactions' ||
-          permission === 'add_expenses' ||
-          permission === 'add_income') {
-        console.log(`User ${user.email} is group admin, granting basic permission ${permission}`);
-        return true;
-      }
+      console.log(`User ${user.email} is group admin, granting all permissions`);
+      return true;
     }
     
     // Check specific permissions
@@ -219,8 +258,10 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
     deleteGroup,
     addMember,
     updateMemberPermissions,
+    updateMemberRole,
     removeMember,
     getUserGroups,
-    canUserPerform
+    canUserPerform,
+    setUserExpiration
   };
 };

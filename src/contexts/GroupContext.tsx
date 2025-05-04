@@ -23,9 +23,11 @@ export const GroupProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     deleteGroup,
     addMember,
     updateMemberPermissions,
+    updateMemberRole,
     removeMember,
     getUserGroups,
-    canUserPerform
+    canUserPerform,
+    setUserExpiration
   } = useGroupActions([]);
 
   // Load initial data
@@ -68,10 +70,12 @@ export const GroupProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         deleteGroup,
         addMember,
         updateMemberPermissions,
+        updateMemberRole,
         removeMember,
         getUserGroups,
         canUserPerform,
-        isLoading
+        isLoading,
+        setUserExpiration
       }}
     >
       {children}

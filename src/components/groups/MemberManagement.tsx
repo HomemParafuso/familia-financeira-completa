@@ -35,12 +35,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Group, GroupMember, Permission, GroupRole } from '@/types/auth';
-import { Crown, MoreVertical, Plus, Trash, UserCog } from 'lucide-react';
+import { Shield, MoreVertical, Plus, Trash, UserCog } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface MemberManagementProps {
   group: Group;
   onAddMember: (email: string, name: string, role: GroupRole, permissions: Permission[]) => void;
   onUpdatePermissions: (userId: string, permissions: Permission[]) => void;
+  onUpdateRole: (userId: string, role: GroupRole) => void;
   onRemoveMember: (userId: string) => void;
 }
 
@@ -59,8 +61,10 @@ const MemberManagement: React.FC<MemberManagementProps> = ({
   group,
   onAddMember,
   onUpdatePermissions,
+  onUpdateRole,
   onRemoveMember,
 }) => {
+  const { user } = useAuth();
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [isPermissionsOpen, setIsPermissionsOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<GroupMember | null>(null);
@@ -68,6 +72,10 @@ const MemberManagement: React.FC<MemberManagementProps> = ({
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberRole, setNewMemberRole] = useState<GroupRole>('member');
   const [selectedPermissions, setSelectedPermissions] = useState<Permission[]>([]);
+
+  // Check if current user is a group admin
+  const currentUserMember = group.members.find(m => m.userId === user?.id);
+  const isGroupAdmin = currentUserMember?.role === 'admin' || user?.role === 'admin';
 
   const handleAddMember = () => {
     onAddMember(newMemberEmail, newMemberName, newMemberRole, selectedPermissions);
@@ -83,6 +91,10 @@ const MemberManagement: React.FC<MemberManagementProps> = ({
       onUpdatePermissions(selectedMember.userId, selectedPermissions);
       setIsPermissionsOpen(false);
     }
+  };
+
+  const handleUpdateRole = (memberId: string, newRole: GroupRole) => {
+    onUpdateRole(memberId, newRole);
   };
 
   const openPermissionsDialog = (member: GroupMember) => {
@@ -107,12 +119,14 @@ const MemberManagement: React.FC<MemberManagementProps> = ({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">Membros do Grupo</h3>
-        <Button 
-          onClick={() => setIsAddMemberOpen(true)}
-          className="bg-finance-primary hover:bg-finance-primary/90"
-        >
-          <Plus className="mr-1 h-4 w-4" /> Adicionar Membro
-        </Button>
+        {isGroupAdmin && (
+          <Button 
+            onClick={() => setIsAddMemberOpen(true)}
+            className="bg-finance-primary hover:bg-finance-primary/90"
+          >
+            <Plus className="mr-1 h-4 w-4" /> Adicionar Membro
+          </Button>
+        )}
       </div>
 
       <div className="border rounded-md">
@@ -121,7 +135,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Função</TableHead>
-              <TableHead className="w-28">Ações</TableHead>
+              {isGroupAdmin && <TableHead className="w-28">Ações</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -129,43 +143,55 @@ const MemberManagement: React.FC<MemberManagementProps> = ({
               <TableRow key={member.userId}>
                 <TableCell>
                   <div className="flex items-center">
-                    {member.role === 'owner' && (
-                      <Crown className="mr-2 h-4 w-4 text-yellow-500" />
+                    {member.role === 'admin' && (
+                      <Shield className="mr-2 h-4 w-4 text-amber-500" />
                     )}
                     <span>{member.name}</span>
                   </div>
                 </TableCell>
                 <TableCell>
-                  {member.role === 'owner' ? 'Proprietário' : 
-                   member.role === 'admin' ? 'Administrador' : 'Membro'}
+                  {member.role === 'admin' ? 'Administrador' : 'Membro'}
                 </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                        <span className="sr-only">Ações</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem 
-                        onClick={() => openPermissionsDialog(member)}
-                        disabled={member.role === 'owner'}
-                      >
-                        <UserCog className="mr-2 h-4 w-4" />
-                        Permissões
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        className="text-destructive"
-                        onClick={() => onRemoveMember(member.userId)}
-                        disabled={member.role === 'owner'}
-                      >
-                        <Trash className="mr-2 h-4 w-4" />
-                        Remover
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+                {isGroupAdmin && (
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="h-4 w-4" />
+                          <span className="sr-only">Ações</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openPermissionsDialog(member)}>
+                          <UserCog className="mr-2 h-4 w-4" />
+                          Permissões
+                        </DropdownMenuItem>
+                        {member.role !== 'admin' ? (
+                          <DropdownMenuItem onClick={() => handleUpdateRole(member.userId, 'admin')}>
+                            <Shield className="mr-2 h-4 w-4" />
+                            Tornar Administrador
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem 
+                            onClick={() => handleUpdateRole(member.userId, 'member')}
+                            disabled={group.members.filter(m => m.role === 'admin').length <= 1}
+                          >
+                            <Shield className="mr-2 h-4 w-4" />
+                            Tornar Membro
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem 
+                          className="text-destructive"
+                          onClick={() => onRemoveMember(member.userId)}
+                          disabled={member.userId === user?.id}
+                        >
+                          <Trash className="mr-2 h-4 w-4" />
+                          Remover
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>

@@ -6,6 +6,7 @@ export interface User {
   role: UserRole;
   avatar?: string;
   createdAt: string;
+  expirationDate?: string; // Data de expiração do acesso
 }
 
 export type UserRole = 'admin' | 'member';
@@ -26,7 +27,7 @@ export interface GroupMember {
   permissions: Permission[];
 }
 
-export type GroupRole = 'owner' | 'admin' | 'member';
+export type GroupRole = 'admin' | 'member';
 
 export type Permission = 
   | 'view_transactions' 

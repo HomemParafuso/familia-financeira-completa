@@ -18,9 +18,22 @@ import GroupList from '@/components/groups/GroupList';
 import MemberManagement from '@/components/groups/MemberManagement';
 import { Group } from '@/types/auth';
 import { useGroup } from '@/contexts/GroupContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const GroupsPage: React.FC = () => {
-  const { groups, currentGroup, setCurrentGroup, createGroup, updateGroup, deleteGroup, addMember, updateMemberPermissions, removeMember } = useGroup();
+  const { user } = useAuth();
+  const { 
+    groups, 
+    currentGroup, 
+    setCurrentGroup, 
+    createGroup, 
+    updateGroup, 
+    deleteGroup, 
+    addMember, 
+    updateMemberPermissions,
+    updateMemberRole,
+    removeMember 
+  } = useGroup();
   
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isManageOpen, setIsManageOpen] = useState(false);
@@ -29,6 +42,11 @@ const GroupsPage: React.FC = () => {
   const [groupName, setGroupName] = useState('');
   const [groupDescription, setGroupDescription] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+
+  // Check if current user is a group admin of the selected group
+  const isCurrentUserGroupAdmin = selectedGroup && 
+    (user?.role === 'admin' || 
+     selectedGroup.members.some(m => m.userId === user?.id && m.role === 'admin'));
 
   const handleCreateGroup = () => {
     if (groupName.trim()) {
@@ -143,8 +161,12 @@ const GroupsPage: React.FC = () => {
                 <TabsContent value="members" className="space-y-4 py-4">
                   <MemberManagement
                     group={selectedGroup}
-                    onAddMember={(email, name, role, permissions) => addMember(selectedGroup.id, `u${Date.now()}`, name, role, permissions)}
-                    onUpdatePermissions={(userId, permissions) => updateMemberPermissions(selectedGroup.id, userId, permissions)}
+                    onAddMember={(email, name, role, permissions) => 
+                      addMember(selectedGroup.id, `u${Date.now()}`, name, role, permissions)}
+                    onUpdatePermissions={(userId, permissions) => 
+                      updateMemberPermissions(selectedGroup.id, userId, permissions)}
+                    onUpdateRole={(userId, role) =>
+                      updateMemberRole(selectedGroup.id, userId, role)}
                     onRemoveMember={(userId) => removeMember(selectedGroup.id, userId)}
                   />
                 </TabsContent>
@@ -159,6 +181,7 @@ const GroupsPage: React.FC = () => {
                         const updatedGroup = { ...selectedGroup, name: e.target.value };
                         setSelectedGroup(updatedGroup);
                       }}
+                      disabled={!isCurrentUserGroupAdmin}
                     />
                   </div>
                   <div className="space-y-2">
@@ -171,23 +194,27 @@ const GroupsPage: React.FC = () => {
                         setSelectedGroup(updatedGroup);
                       }}
                       rows={3}
+                      disabled={!isCurrentUserGroupAdmin}
                     />
                   </div>
                   
                   <div className="flex justify-between pt-4">
-                    <Button
-                      variant="destructive"
-                      onClick={handleDeleteGroup}
-                      disabled={selectedGroup.ownerId !== 'u1'}
-                    >
-                      Excluir Grupo
-                    </Button>
+                    {isCurrentUserGroupAdmin && (
+                      <Button
+                        variant="destructive"
+                        onClick={handleDeleteGroup}
+                      >
+                        Excluir Grupo
+                      </Button>
+                    )}
+                    
                     <Button
                       onClick={() => {
                         updateGroup(selectedGroup);
                         setIsManageOpen(false);
                       }}
                       className="bg-finance-primary hover:bg-finance-primary/90"
+                      disabled={!isCurrentUserGroupAdmin}
                     >
                       Salvar Alterações
                     </Button>
