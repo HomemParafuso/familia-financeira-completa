@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -47,6 +46,8 @@ const formSchema = z.object({
   endDate: z.date().optional(),
 });
 
+type BudgetFormType = z.infer<typeof formSchema>;
+
 interface BudgetFormProps {
   initialData?: Budget;
   onClose: () => void;
@@ -55,7 +56,7 @@ interface BudgetFormProps {
 const BudgetForm: React.FC<BudgetFormProps> = ({ initialData, onClose }) => {
   const { addBudget, updateBudget, categories } = useFinance();
   const { currentGroup } = useGroup();
-  const [budgetType, setBudgetType] = useState(
+  const [budgetType, setBudgetType] = useState<'category' | 'global' | 'member'>(
     initialData?.isGlobal ? 'global' : 
     initialData?.memberId ? 'member' : 'category'
   );
@@ -67,11 +68,14 @@ const BudgetForm: React.FC<BudgetFormProps> = ({ initialData, onClose }) => {
   const groupMembers = currentGroup?.members || [];
   
   // Converter as datas de string para objeto Date se houver dados iniciais
-  const defaultValues = initialData 
+  const defaultValues: BudgetFormType = initialData 
     ? {
-        ...initialData,
         budgetType: initialData.isGlobal ? 'global' : 
-                    initialData.memberId ? 'member' : 'category',
+                   initialData.memberId ? 'member' : 'category',
+        categoryId: initialData.categoryId,
+        memberId: initialData.memberId,
+        amount: initialData.amount,
+        period: initialData.period,
         startDate: new Date(initialData.startDate),
         endDate: initialData.endDate ? new Date(initialData.endDate) : undefined
       }
@@ -84,17 +88,17 @@ const BudgetForm: React.FC<BudgetFormProps> = ({ initialData, onClose }) => {
         startDate: new Date(),
       };
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<BudgetFormType>({
     resolver: zodResolver(formSchema),
     defaultValues,
   });
 
   const selectedBudgetType = form.watch('budgetType');
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = (values: BudgetFormType) => {
     const { budgetType, categoryId, memberId, ...otherValues } = values;
     
-    const budgetData = {
+    const budgetData: Omit<Budget, 'id'> = {
       ...otherValues,
       categoryId: budgetType === 'category' ? categoryId : undefined,
       memberId: budgetType === 'member' ? memberId : undefined,
@@ -102,6 +106,8 @@ const BudgetForm: React.FC<BudgetFormProps> = ({ initialData, onClose }) => {
       startDate: values.startDate.toISOString(),
       endDate: values.endDate ? values.endDate.toISOString() : undefined,
       spent: initialData?.spent || 0,
+      amount: values.amount,
+      period: values.period,
     };
 
     if (initialData) {
