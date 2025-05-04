@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -28,11 +28,13 @@ import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useGroup } from '@/contexts/GroupContext';
 
 const formSchema = z.object({
-  categoryId: z.string({
-    required_error: "Por favor selecione uma categoria.",
-  }),
+  budgetType: z.enum(['category', 'global', 'member']),
+  categoryId: z.string().optional(),
+  memberId: z.string().optional(),
   amount: z.coerce.number().positive({
     message: 'O valor deve ser maior que zero.',
   }),
@@ -52,19 +54,31 @@ interface BudgetFormProps {
 
 const BudgetForm: React.FC<BudgetFormProps> = ({ initialData, onClose }) => {
   const { addBudget, updateBudget, categories } = useFinance();
+  const { currentGroup } = useGroup();
+  const [budgetType, setBudgetType] = useState(
+    initialData?.isGlobal ? 'global' : 
+    initialData?.memberId ? 'member' : 'category'
+  );
   
   // Filtrar apenas categorias de despesa
   const expenseCategories = categories.filter(cat => cat.type === 'expense');
+  
+  // Obter membros do grupo atual
+  const groupMembers = currentGroup?.members || [];
   
   // Converter as datas de string para objeto Date se houver dados iniciais
   const defaultValues = initialData 
     ? {
         ...initialData,
+        budgetType: initialData.isGlobal ? 'global' : 
+                    initialData.memberId ? 'member' : 'category',
         startDate: new Date(initialData.startDate),
         endDate: initialData.endDate ? new Date(initialData.endDate) : undefined
       }
     : {
+        budgetType: 'category',
         categoryId: '',
+        memberId: '',
         amount: 0,
         period: 'monthly' as const,
         startDate: new Date(),
@@ -75,27 +89,28 @@ const BudgetForm: React.FC<BudgetFormProps> = ({ initialData, onClose }) => {
     defaultValues,
   });
 
+  const selectedBudgetType = form.watch('budgetType');
+
   const onSubmit = (values: z.infer<typeof formSchema>) => {
+    const { budgetType, categoryId, memberId, ...otherValues } = values;
+    
+    const budgetData = {
+      ...otherValues,
+      categoryId: budgetType === 'category' ? categoryId : undefined,
+      memberId: budgetType === 'member' ? memberId : undefined,
+      isGlobal: budgetType === 'global',
+      startDate: values.startDate.toISOString(),
+      endDate: values.endDate ? values.endDate.toISOString() : undefined,
+      spent: initialData?.spent || 0,
+    };
+
     if (initialData) {
-      // Converter as datas para string antes de salvar
       updateBudget({
         ...initialData,
-        categoryId: values.categoryId,
-        amount: values.amount,
-        period: values.period,
-        startDate: values.startDate.toISOString(),
-        endDate: values.endDate ? values.endDate.toISOString() : undefined,
+        ...budgetData,
       });
     } else {
-      // Novo orçamento
-      addBudget({
-        categoryId: values.categoryId,
-        amount: values.amount,
-        period: values.period,
-        startDate: values.startDate.toISOString(),
-        endDate: values.endDate ? values.endDate.toISOString() : undefined,
-        spent: 0, // Inicia com 0 de gastos
-      });
+      addBudget(budgetData);
     }
     onClose();
   };
@@ -105,40 +120,121 @@ const BudgetForm: React.FC<BudgetFormProps> = ({ initialData, onClose }) => {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-2">
         <FormField
           control={form.control}
-          name="categoryId"
+          name="budgetType"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Categoria</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma categoria" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {expenseCategories.length > 0 ? (
-                    expenseCategories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        <div className="flex items-center">
-                          <div 
-                            className="w-3 h-3 rounded-full mr-2" 
-                            style={{ backgroundColor: category.color }}
-                          />
-                          {category.name}
-                        </div>
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-categories" disabled>
-                      Nenhuma categoria disponível
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+            <FormItem className="space-y-3">
+              <FormLabel>Tipo de Orçamento</FormLabel>
+              <FormControl>
+                <RadioGroup
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    setBudgetType(value as 'category' | 'global' | 'member');
+                  }}
+                  defaultValue={field.value}
+                  className="flex flex-col space-y-1"
+                >
+                  <FormItem className="flex items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <RadioGroupItem value="category" />
+                    </FormControl>
+                    <FormLabel className="font-normal">
+                      Orçamento por Categoria
+                    </FormLabel>
+                  </FormItem>
+                  <FormItem className="flex items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <RadioGroupItem value="global" />
+                    </FormControl>
+                    <FormLabel className="font-normal">
+                      Orçamento Global (toda família)
+                    </FormLabel>
+                  </FormItem>
+                  <FormItem className="flex items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <RadioGroupItem value="member" />
+                    </FormControl>
+                    <FormLabel className="font-normal">
+                      Orçamento por Membro
+                    </FormLabel>
+                  </FormItem>
+                </RadioGroup>
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+        
+        {selectedBudgetType === 'category' && (
+          <FormField
+            control={form.control}
+            name="categoryId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Categoria</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma categoria" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {expenseCategories.length > 0 ? (
+                      expenseCategories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          <div className="flex items-center">
+                            <div 
+                              className="w-3 h-3 rounded-full mr-2" 
+                              style={{ backgroundColor: category.color }}
+                            />
+                            {category.name}
+                          </div>
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-categories" disabled>
+                        Nenhuma categoria disponível
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+        
+        {selectedBudgetType === 'member' && (
+          <FormField
+            control={form.control}
+            name="memberId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Membro</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um membro" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {groupMembers.length > 0 ? (
+                      groupMembers.map((member) => (
+                        <SelectItem key={member.userId} value={member.userId}>
+                          {member.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-members" disabled>
+                        Nenhum membro disponível
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
         
         <FormField
           control={form.control}

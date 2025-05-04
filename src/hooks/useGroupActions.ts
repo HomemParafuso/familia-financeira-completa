@@ -1,8 +1,9 @@
 
 import { useState } from 'react';
-import { Group, GroupMember, Permission } from '@/types/auth';
+import { Group, GroupMember, Permission, GroupRole } from '@/types/auth';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { ReportFormat } from '@/types/finance';
 
 export const useGroupActions = (initialGroups: Group[] = []) => {
   const { user } = useAuth();
@@ -94,12 +95,32 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
       return;
     }
     
+    // Se estiver adicionando um administrador, remova o privilégio de administrador de outros membros
+    // pois só pode ter um administrador por grupo
+    let updatedMembers = [...group.members];
+    
+    if (role === 'admin') {
+      // Atualiza todos os outros administradores para membros comuns
+      updatedMembers = updatedMembers.map(member => 
+        member.role === 'admin' 
+          ? { 
+              ...member, 
+              role: 'member' as GroupRole,
+              // Manter apenas permissões básicas para ex-admins
+              permissions: member.permissions.filter(p => 
+                p !== 'manage_members' && p !== 'manage_categories'
+              )
+            } 
+          : member
+      );
+    }
+    
+    // Adiciona o novo membro
+    updatedMembers.push({ userId, name, role, permissions });
+    
     const updatedGroup = {
       ...group,
-      members: [
-        ...group.members,
-        { userId, name, role, permissions }
-      ]
+      members: updatedMembers
     };
     
     updateGroup(updatedGroup);
@@ -137,9 +158,46 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
     const group = groups.find(g => g.id === groupId);
     if (!group) return;
     
-    const updatedMembers = group.members.map(member => 
+    // Se estiver promovendo a administrador, remova o privilégio de admin de outros membros
+    let updatedMembers = [...group.members];
+    
+    if (role === 'admin') {
+      // Verificar se já existe um administrador
+      updatedMembers = updatedMembers.map(member => 
+        member.role === 'admin' && member.userId !== userId
+          ? { 
+              ...member, 
+              role: 'member' as GroupRole,
+              // Manter apenas permissões básicas para ex-admins
+              permissions: member.permissions.filter(p => 
+                p !== 'manage_members' && p !== 'manage_categories'
+              )
+            } 
+          : member
+      );
+    }
+    
+    // Atualiza o papel do membro específico
+    updatedMembers = updatedMembers.map(member => 
       member.userId === userId 
-        ? { ...member, role } 
+        ? { 
+            ...member, 
+            role,
+            // Se for promovido a admin, adiciona todas as permissões
+            permissions: role === 'admin' 
+              ? [
+                  'view_transactions',
+                  'add_expenses',
+                  'add_income',
+                  'edit_transactions',
+                  'delete_transactions',
+                  'manage_categories',
+                  'manage_budgets',
+                  'manage_members',
+                  'view_reports'
+                ]
+              : member.permissions
+          } 
         : member
     );
     
@@ -163,14 +221,11 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
       return;
     }
     
-    // Cannot remove the last admin of a group
+    // Não pode remover o único administrador do grupo
     const targetMember = group.members.find(m => m.userId === userId);
     if (targetMember?.role === 'admin') {
-      const adminCount = group.members.filter(m => m.role === 'admin').length;
-      if (adminCount <= 1) {
-        toast.error('Não é possível remover o único administrador do grupo');
-        return;
-      }
+      toast.error('Não é possível remover o administrador do grupo');
+      return;
     }
     
     const updatedGroup = {
@@ -193,6 +248,33 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
     
     toast.success(`Data de expiração do usuário definida para ${new Date(expirationDate).toLocaleDateString('pt-BR')}`);
     console.log(`User ${userId} expiration set to ${expirationDate}`);
+  };
+
+  // Obtém o administrador do grupo
+  const getGroupAdmin = (groupId: string) => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return undefined;
+    
+    return group.members.find(member => member.role === 'admin');
+  };
+
+  // Funções para relatórios
+  const getUserReport = (userId: string) => {
+    // Esta função retornaria dados específicos do usuário
+    // Na implementação real, filtraria transações do usuário específico
+    console.log(`Obtendo relatório para o usuário ${userId}`);
+    return {}; // Placeholder
+  };
+
+  // Exportação de relatórios
+  const exportReport = (format: ReportFormat) => {
+    // Na implementação real, geraria um arquivo para download
+    console.log(`Exportando relatório no formato ${format}`);
+    
+    // Simular uma ação de download
+    setTimeout(() => {
+      toast.success(`Relatório exportado em formato ${format.toUpperCase()}`);
+    }, 1000);
   };
 
   // Helper functions
@@ -262,6 +344,9 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
     removeMember,
     getUserGroups,
     canUserPerform,
-    setUserExpiration
+    setUserExpiration,
+    getGroupAdmin,
+    getUserReport,
+    exportReport
   };
 };

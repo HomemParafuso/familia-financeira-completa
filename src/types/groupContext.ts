@@ -16,4 +16,7 @@ export interface GroupContextType {
   canUserPerform: (permission: Permission) => boolean;
   isLoading: boolean;
   setUserExpiration: (userId: string, expirationDate: string) => void;
+  getGroupAdmin: (groupId: string) => GroupMember | undefined;
+  getUserReport: (userId: string) => any; // Para obter relatório específico de um usuário
+  exportReport: (format: 'pdf' | 'excel' | 'ofx') => void;
 }

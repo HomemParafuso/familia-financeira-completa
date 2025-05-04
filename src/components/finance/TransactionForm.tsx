@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Tags, X } from 'lucide-react';
+import { Calendar as CalendarIcon, Tags, X, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,6 +19,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -34,9 +41,9 @@ interface TransactionFormProps {
 }
 
 const TransactionForm: React.FC<TransactionFormProps> = ({ initialData, onClose, onSuccess }) => {
-  const { categories, addTransaction, updateTransaction } = useFinance();
+  const { categories, addTransaction, updateTransaction, addCategory } = useFinance();
   const { user } = useAuth();
-  const { currentGroup } = useGroup();
+  const { currentGroup, canUserPerform } = useGroup();
   
   // Form state
   const [type, setType] = useState<'income' | 'expense'>(initialData?.type || 'expense');
@@ -50,9 +57,18 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ initialData, onClose,
   const [recurringFrequency, setRecurringFrequency] = useState<RecurrencePeriod>(
     (initialData?.recurring?.frequency as RecurrencePeriod) || 'monthly'
   );
+  const [recurringMonths, setRecurringMonths] = useState<number>(
+    initialData?.recurring?.months || 1
+  );
+  
+  // Estado para o modal de nova categoria
+  const [isNewCategoryOpen, setIsNewCategoryOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryColor, setNewCategoryColor] = useState('#3498db');
   
   // Filter categories based on transaction type
   const filteredCategories = categories.filter(c => c.type === type);
+  const hasCategoriesForType = filteredCategories.length > 0;
   
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
@@ -72,6 +88,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ initialData, onClose,
       ...(isRecurring ? {
         recurring: {
           frequency: recurringFrequency,
+          months: recurringMonths,
         }
       } : {})
     };
@@ -94,6 +111,24 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ initialData, onClose,
     }
     
     onClose();
+  };
+  
+  // Manipulador para criar nova categoria
+  const handleCreateCategory = () => {
+    if (newCategoryName.trim()) {
+      const newCategory = {
+        name: newCategoryName.trim(),
+        type,
+        color: newCategoryColor,
+        icon: type === 'expense' ? 'file-text' : 'file-text-2',
+        groupId: currentGroup?.id
+      };
+      
+      const newCategoryId = addCategory(newCategory);
+      setCategoryId(newCategoryId);
+      setIsNewCategoryOpen(false);
+      setNewCategoryName('');
+    }
   };
   
   // Add tag to list
@@ -174,21 +209,41 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ initialData, onClose,
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="category">Categoria</Label>
-            <Select
-              value={categoryId}
-              onValueChange={(value) => setCategoryId(value)}
-            >
-              <SelectTrigger id="category">
-                <SelectValue placeholder="Selecione uma categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {filteredCategories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select
+                value={categoryId}
+                onValueChange={(value) => setCategoryId(value)}
+                disabled={!hasCategoriesForType}
+                className="flex-1"
+              >
+                <SelectTrigger id="category">
+                  <SelectValue placeholder={hasCategoriesForType ? "Selecione uma categoria" : "Nenhuma categoria disponível"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredCategories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                  {!hasCategoriesForType && (
+                    <SelectItem value="no-categories" disabled>
+                      Nenhuma categoria disponível
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+              
+              {canUserPerform('manage_categories') && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="px-3" 
+                  onClick={() => setIsNewCategoryOpen(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
           
           <div>
@@ -261,20 +316,37 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ initialData, onClose,
           </div>
           
           {isRecurring && (
-            <Select
-              value={recurringFrequency}
-              onValueChange={(value) => setRecurringFrequency(value as RecurrencePeriod)}
-            >
-              <SelectTrigger id="recurringFrequency">
-                <SelectValue placeholder="Frequência" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="daily">Diária</SelectItem>
-                <SelectItem value="weekly">Semanal</SelectItem>
-                <SelectItem value="monthly">Mensal</SelectItem>
-                <SelectItem value="yearly">Anual</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="recurringFrequency">Frequência</Label>
+                <Select
+                  value={recurringFrequency}
+                  onValueChange={(value) => setRecurringFrequency(value as RecurrencePeriod)}
+                >
+                  <SelectTrigger id="recurringFrequency">
+                    <SelectValue placeholder="Frequência" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Diária</SelectItem>
+                    <SelectItem value="weekly">Semanal</SelectItem>
+                    <SelectItem value="monthly">Mensal</SelectItem>
+                    <SelectItem value="yearly">Anual</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="recurringMonths">Duração (meses)</Label>
+                <Input
+                  id="recurringMonths"
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={recurringMonths}
+                  onChange={(e) => setRecurringMonths(parseInt(e.target.value) || 1)}
+                />
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -287,6 +359,51 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ initialData, onClose,
           {initialData ? 'Atualizar' : 'Adicionar'} Transação
         </Button>
       </div>
+      
+      {/* Modal para nova categoria */}
+      <Dialog open={isNewCategoryOpen} onOpenChange={setIsNewCategoryOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Criar Nova Categoria</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="category-name" className="text-right">
+                Nome
+              </Label>
+              <Input
+                id="category-name"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="category-color" className="text-right">
+                Cor
+              </Label>
+              <div className="col-span-3 flex items-center gap-2">
+                <input
+                  type="color"
+                  id="category-color"
+                  value={newCategoryColor}
+                  onChange={(e) => setNewCategoryColor(e.target.value)}
+                  className="w-12 h-8 rounded cursor-pointer"
+                />
+                <span>{newCategoryColor}</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsNewCategoryOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={handleCreateCategory} className="bg-finance-primary hover:bg-finance-primary/90">
+              Criar Categoria
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </form>
   );
 };

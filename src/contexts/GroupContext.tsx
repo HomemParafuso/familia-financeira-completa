@@ -6,6 +6,7 @@ import { mockGroups } from '@/mockData';
 import { useAuth } from './AuthContext';
 import { useGroupActions } from '@/hooks/useGroupActions';
 import { toast } from 'sonner';
+import { ReportFormat } from '@/types/finance';
 
 const GroupContext = createContext<GroupContextType | undefined>(undefined);
 
@@ -27,7 +28,10 @@ export const GroupProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     removeMember,
     getUserGroups,
     canUserPerform,
-    setUserExpiration
+    setUserExpiration,
+    getGroupAdmin,
+    getUserReport,
+    exportReport
   } = useGroupActions([]);
 
   // Load initial data
@@ -36,11 +40,30 @@ export const GroupProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       try {
         // In a real app, this would be API calls
         await new Promise(resolve => setTimeout(resolve, 500));
-        setGroups(mockGroups);
+        
+        // Garantir que cada grupo tenha exatamente um administrador
+        const updatedGroups = mockGroups.map(group => {
+          // Encontrar o primeiro administrador
+          const adminIndex = group.members.findIndex(m => m.role === 'admin');
+          if (adminIndex !== -1) {
+            // Atualizar todos os outros admin para member
+            return {
+              ...group,
+              members: group.members.map((m, idx) => 
+                idx !== adminIndex && m.role === 'admin'
+                  ? { ...m, role: 'member' as const }
+                  : m
+              )
+            };
+          }
+          return group;
+        });
+        
+        setGroups(updatedGroups);
         
         // Set current group if user belongs to any
         if (user) {
-          const userGroups = mockGroups.filter(group => 
+          const userGroups = updatedGroups.filter(group => 
             group.members.some(member => member.userId === user.id)
           );
           
@@ -75,7 +98,10 @@ export const GroupProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         getUserGroups,
         canUserPerform,
         isLoading,
-        setUserExpiration
+        setUserExpiration,
+        getGroupAdmin,
+        getUserReport,
+        exportReport
       }}
     >
       {children}

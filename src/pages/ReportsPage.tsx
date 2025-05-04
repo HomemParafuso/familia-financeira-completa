@@ -17,12 +17,45 @@ import {
   CartesianGrid
 } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useGroup } from '@/contexts/GroupContext';
+import { toast } from 'sonner';
+import { FileExcel, FilePdf, FileText } from 'lucide-react';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1'];
 
 const ReportsPage: React.FC = () => {
   const { transactions, categories, summary, isLoading } = useFinance();
+  const { currentGroup, canUserPerform, getUserReport, exportReport } = useGroup();
   const [reportType, setReportType] = useState('expenses');
+  const [selectedMemberId, setSelectedMemberId] = useState<string | 'all'>('all');
+
+  // Obter membros do grupo atual
+  const groupMembers = currentGroup?.members || [];
+  const isGroupAdmin = currentGroup?.members.some(m => 
+    m.userId === currentGroup.ownerId && m.role === 'admin'
+  );
+  
+  const canViewAllReports = canUserPerform('view_reports');
+
+  // Manipulador para exportar relatórios
+  const handleExport = (format: 'pdf' | 'excel' | 'ofx') => {
+    exportReport(format);
+    toast.success(`Relatório exportado em formato ${format.toUpperCase()}`);
+  };
 
   if (isLoading || !summary) {
     return (
@@ -65,9 +98,51 @@ const ReportsPage: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Relatórios</h1>
-        <p className="text-muted-foreground">Visualize seus dados financeiros</p>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">Relatórios</h1>
+          <p className="text-muted-foreground">Visualize seus dados financeiros</p>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          {/* Seletor de membros - apenas para administradores ou com permissão */}
+          {canViewAllReports && groupMembers.length > 0 && (
+            <Select value={selectedMemberId} onValueChange={setSelectedMemberId}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filtrar por membro" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os membros</SelectItem>
+                {groupMembers.map(member => (
+                  <SelectItem key={member.userId} value={member.userId}>
+                    {member.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          
+          {/* Menu de exportação */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">Exportar</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                <FilePdf className="mr-2 h-4 w-4" />
+                <span>Exportar como PDF</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('excel')}>
+                <FileExcel className="mr-2 h-4 w-4" />
+                <span>Exportar como Excel</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('ofx')}>
+                <FileText className="mr-2 h-4 w-4" />
+                <span>Exportar como OFX</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <Tabs defaultValue="monthly" className="space-y-4">

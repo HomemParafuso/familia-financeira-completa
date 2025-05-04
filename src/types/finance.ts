@@ -1,3 +1,4 @@
+
 export interface Transaction {
   id: string;
   type: 'income' | 'expense';
@@ -15,7 +16,8 @@ export interface Transaction {
 }
 
 export interface RecurringConfig {
-  frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  frequency: RecurrencePeriod;
+  months?: number; // Quantidade de meses para recorrência
   endDate?: string;
   lastProcessed?: string;
 }
@@ -53,10 +55,14 @@ export interface FinancialSummary {
 
 export interface Budget {
   id: string;
-  categoryId: string;
+  categoryId?: string; // Opcional para orçamentos globais
+  memberId?: string;   // Opcional para orçamentos por membro
+  isGlobal?: boolean;  // Indica se é um orçamento global para o grupo
   amount: number;
   spent: number;
   period: 'weekly' | 'monthly' | 'yearly';
   startDate: string;
   endDate?: string;
 }
+
+export type ReportFormat = 'pdf' | 'excel' | 'ofx';
