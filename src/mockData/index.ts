@@ -198,7 +198,7 @@ export const mockGroups: Group[] = [
       {
         userId: 'u1',
         name: 'João Silva',
-        role: 'owner',
+        role: 'admin', // Aqui alteramos "owner" para "admin"
         permissions: [
           'view_transactions',
           'add_expenses',
