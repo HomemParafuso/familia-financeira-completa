@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -211,7 +212,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ initialData, onClose,
             <div className="flex gap-2">
               <Select
                 value={categoryId}
-                onValueChange={setCategoryId}
+                onValueChange={(value) => setCategoryId(value)}
                 disabled={!hasCategoriesForType}
               >
                 <SelectTrigger id="category">
