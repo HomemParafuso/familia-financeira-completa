@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/Dashboard';
 import { useFinance } from '@/contexts/FinanceContext';
@@ -33,7 +32,7 @@ import {
 } from '@/components/ui/select';
 import { useGroup } from '@/contexts/GroupContext';
 import { toast } from 'sonner';
-import { FilePdf, FileText, Download, FileSpreadsheet } from 'lucide-react';
+import { FileText, Download, File } from 'lucide-react';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1'];
 
@@ -458,11 +457,11 @@ NEWFILEUID:NONE
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => handleExport('pdf')} disabled={isExporting}>
-                <FilePdf className="mr-2 h-4 w-4" />
+                <File className="mr-2 h-4 w-4" />
                 <span>Exportar como PDF</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleExport('excel')} disabled={isExporting}>
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                <FileText className="mr-2 h-4 w-4" />
                 <span>Exportar como Excel</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleExport('ofx')} disabled={isExporting}>

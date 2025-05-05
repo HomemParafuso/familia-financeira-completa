@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -125,7 +124,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ initialData, onClose,
       };
       
       const newCategoryId = addCategory(newCategory);
-      setCategoryId(newCategoryId);
+      if (newCategoryId) {
+        setCategoryId(newCategoryId);
+      }
       setIsNewCategoryOpen(false);
       setNewCategoryName('');
     }
