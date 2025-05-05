@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/Dashboard';
 import { useFinance } from '@/contexts/FinanceContext';
@@ -32,15 +33,16 @@ import {
 } from '@/components/ui/select';
 import { useGroup } from '@/contexts/GroupContext';
 import { toast } from 'sonner';
-import { FileText } from 'lucide-react';
+import { FilePdf, FileText, Download, FileSpreadsheet } from 'lucide-react';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1'];
 
 const ReportsPage: React.FC = () => {
   const { transactions, categories, summary, isLoading } = useFinance();
-  const { currentGroup, canUserPerform, getUserReport, exportReport } = useGroup();
+  const { currentGroup, canUserPerform, getUserReport } = useGroup();
   const [reportType, setReportType] = useState('expenses');
   const [selectedMemberId, setSelectedMemberId] = useState<string | 'all'>('all');
+  const [isExporting, setIsExporting] = useState(false);
 
   // Obter membros do grupo atual
   const groupMembers = currentGroup?.members || [];
@@ -50,10 +52,326 @@ const ReportsPage: React.FC = () => {
   
   const canViewAllReports = canUserPerform('view_reports');
 
+  // Função para gerar o conteúdo do relatório com base nos dados atuais
+  const generateReportContent = () => {
+    // Dados para o relatório
+    const title = "Relatório Financeiro";
+    const date = new Date().toLocaleDateString('pt-BR');
+    const totalIncome = summary?.totalIncome || 0;
+    const totalExpenses = summary?.totalExpenses || 0;
+    const balance = summary?.balance || 0;
+    
+    // Informações do grupo
+    const groupInfo = currentGroup 
+      ? `Grupo: ${currentGroup.name}`
+      : 'Finanças Pessoais';
+      
+    // Filtro de membro
+    const memberFilter = selectedMemberId !== 'all' && currentGroup
+      ? currentGroup.members.find(m => m.userId === selectedMemberId)?.name || 'Membro não encontrado'
+      : 'Todos os membros';
+    
+    return {
+      title,
+      date,
+      groupInfo,
+      memberFilter,
+      totalIncome,
+      totalExpenses,
+      balance,
+      categorySummary: summary?.categorySummary || [],
+      monthlySummary: summary?.monthlySummary || []
+    };
+  };
+  
+  // Função para exportar para PDF
+  const exportToPDF = () => {
+    setIsExporting(true);
+    try {
+      const reportData = generateReportContent();
+      
+      // Criação do conteúdo do PDF utilizando uma string HTML
+      const pdfContent = `
+        <html>
+        <head>
+          <title>${reportData.title}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { color: #333; }
+            .header { margin-bottom: 20px; }
+            .summary { margin-bottom: 30px; }
+            .summary-item { margin: 10px 0; }
+            .income { color: green; }
+            .expense { color: red; }
+            .category-list { margin-bottom: 30px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+            th { background-color: #f2f2f2; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${reportData.title}</h1>
+            <p>Data: ${reportData.date}</p>
+            <p>${reportData.groupInfo}</p>
+            <p>Filtro: ${reportData.memberFilter}</p>
+          </div>
+          
+          <div class="summary">
+            <h2>Resumo</h2>
+            <p class="summary-item">Receitas Totais: <span class="income">${formatCurrency(reportData.totalIncome)}</span></p>
+            <p class="summary-item">Despesas Totais: <span class="expense">${formatCurrency(reportData.totalExpenses)}</span></p>
+            <p class="summary-item">Saldo: <span class="${reportData.balance >= 0 ? 'income' : 'expense'}">${formatCurrency(reportData.balance)}</span></p>
+          </div>
+          
+          <div class="category-list">
+            <h2>Despesas por Categoria</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Categoria</th>
+                  <th>Valor</th>
+                  <th>Percentual</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${reportData.categorySummary.map(cat => `
+                  <tr>
+                    <td>${cat.category}</td>
+                    <td>${formatCurrency(cat.amount)}</td>
+                    <td>${cat.percentage.toFixed(1)}%</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="monthly-summary">
+            <h2>Evolução Mensal</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Mês</th>
+                  <th>Receitas</th>
+                  <th>Despesas</th>
+                  <th>Saldo</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${reportData.monthlySummary.map(month => `
+                  <tr>
+                    <td>${formatMonth(month.month)}</td>
+                    <td>${formatCurrency(month.income)}</td>
+                    <td>${formatCurrency(month.expenses)}</td>
+                    <td>${formatCurrency(month.income - month.expenses)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      // Conversão da string HTML para Blob
+      const blob = new Blob([pdfContent], { type: 'application/pdf' });
+      
+      // Criar um link para download
+      downloadFile(blob, `relatorio_financeiro_${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      toast.success('Relatório PDF gerado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast.error('Erro ao gerar o relatório PDF');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+  
+  // Função para exportar para Excel
+  const exportToExcel = () => {
+    setIsExporting(true);
+    try {
+      const reportData = generateReportContent();
+      
+      // Gerar cabeçalho CSV
+      let csvContent = 'data:text/csv;charset=utf-8,';
+      
+      // Informações do relatório
+      csvContent += `${reportData.title}\r\n`;
+      csvContent += `Data: ${reportData.date}\r\n`;
+      csvContent += `${reportData.groupInfo}\r\n`;
+      csvContent += `Filtro: ${reportData.memberFilter}\r\n\r\n`;
+      
+      // Resumo
+      csvContent += 'Resumo\r\n';
+      csvContent += `Receitas Totais,${reportData.totalIncome}\r\n`;
+      csvContent += `Despesas Totais,${reportData.totalExpenses}\r\n`;
+      csvContent += `Saldo,${reportData.balance}\r\n\r\n`;
+      
+      // Despesas por categoria
+      csvContent += 'Despesas por Categoria\r\n';
+      csvContent += 'Categoria,Valor,Percentual\r\n';
+      
+      reportData.categorySummary.forEach(cat => {
+        csvContent += `${cat.category},${cat.amount},${cat.percentage.toFixed(1)}%\r\n`;
+      });
+      
+      csvContent += '\r\nEvolução Mensal\r\n';
+      csvContent += 'Mês,Receitas,Despesas,Saldo\r\n';
+      
+      reportData.monthlySummary.forEach(month => {
+        const saldo = month.income - month.expenses;
+        csvContent += `${month.month},${month.income},${month.expenses},${saldo}\r\n`;
+      });
+      
+      // Criar um URI com o conteúdo CSV
+      const encodedUri = encodeURI(csvContent);
+      
+      // Criar um elemento para download
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `relatorio_financeiro_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      
+      // Iniciar download
+      link.click();
+      
+      // Limpar
+      document.body.removeChild(link);
+      
+      toast.success('Relatório Excel gerado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao gerar Excel:', error);
+      toast.error('Erro ao gerar o relatório Excel');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+  
+  // Função para exportar para OFX (Open Financial Exchange)
+  const exportToOFX = () => {
+    setIsExporting(true);
+    try {
+      const reportData = generateReportContent();
+      const now = new Date();
+      const nowStr = now.toISOString().replace(/[-:]/g, '').split('.')[0];
+      const startDate = reportData.monthlySummary.length > 0 
+        ? reportData.monthlySummary[0].month + '-01' 
+        : now.toISOString().split('T')[0];
+      
+      // Cabeçalho OFX
+      let ofxContent = `
+OFXHEADER:100
+DATA:OFXSGML
+VERSION:102
+SECURITY:NONE
+ENCODING:USASCII
+CHARSET:1252
+COMPRESSION:NONE
+OLDFILEUID:NONE
+NEWFILEUID:NONE
+
+<OFX>
+  <SIGNONMSGSRSV1>
+    <SONRS>
+      <STATUS>
+        <CODE>0</CODE>
+        <SEVERITY>INFO</SEVERITY>
+      </STATUS>
+      <DTSERVER>${nowStr}</DTSERVER>
+      <LANGUAGE>POR</LANGUAGE>
+    </SONRS>
+  </SIGNONMSGSRSV1>
+  <BANKMSGSRSV1>
+    <STMTTRNRS>
+      <TRNUID>${Math.floor(Math.random() * 10000)}</TRNUID>
+      <STATUS>
+        <CODE>0</CODE>
+        <SEVERITY>INFO</SEVERITY>
+      </STATUS>
+      <STMTRS>
+        <CURDEF>BRL</CURDEF>
+        <BANKACCTFROM>
+          <BANKID>999</BANKID>
+          <ACCTID>999999</ACCTID>
+          <ACCTTYPE>CHECKING</ACCTTYPE>
+        </BANKACCTFROM>
+        <BANKTRANLIST>
+          <DTSTART>${startDate.replace(/-/g, '')}</DTSTART>
+          <DTEND>${nowStr.substring(0, 8)}</DTEND>
+`;
+      
+      // Adicionar categorias como transações
+      reportData.categorySummary.forEach((cat, index) => {
+        const txDate = now.toISOString().split('T')[0].replace(/-/g, '');
+        const txId = `CAT${index}${now.getTime()}`;
+        
+        ofxContent += `
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>${txDate}</DTPOSTED>
+            <TRNAMT>-${cat.amount.toFixed(2)}</TRNAMT>
+            <FITID>${txId}</FITID>
+            <NAME>${cat.category}</NAME>
+            <MEMO>Despesa por categoria</MEMO>
+          </STMTTRN>`;
+      });
+      
+      // Fechar tags
+      ofxContent += `
+        </BANKTRANLIST>
+        <LEDGERBAL>
+          <BALAMT>${reportData.balance.toFixed(2)}</BALAMT>
+          <DTASOF>${nowStr}</DTASOF>
+        </LEDGERBAL>
+      </STMTRS>
+    </STMTTRNRS>
+  </BANKMSGSRSV1>
+</OFX>`;
+      
+      // Criar um blob com o conteúdo OFX
+      const blob = new Blob([ofxContent], { type: 'application/x-ofx' });
+      
+      // Criar um link para download
+      downloadFile(blob, `relatorio_financeiro_${new Date().toISOString().split('T')[0]}.ofx`);
+      
+      toast.success('Relatório OFX gerado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao gerar OFX:', error);
+      toast.error('Erro ao gerar o relatório OFX');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+  
+  // Função auxiliar para download de arquivos
+  const downloadFile = (blob: Blob, fileName: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
   // Manipulador para exportar relatórios
   const handleExport = (format: 'pdf' | 'excel' | 'ofx') => {
-    exportReport(format);
-    toast.success(`Relatório exportado em formato ${format.toUpperCase()}`);
+    if (isExporting) return;
+    
+    switch (format) {
+      case 'pdf':
+        exportToPDF();
+        break;
+      case 'excel':
+        exportToExcel();
+        break;
+      case 'ofx':
+        exportToOFX();
+        break;
+    }
   };
 
   if (isLoading || !summary) {
@@ -124,18 +442,30 @@ const ReportsPage: React.FC = () => {
           {/* Menu de exportação */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline">Exportar</Button>
+              <Button variant="outline" disabled={isExporting}>
+                {isExporting ? (
+                  <>
+                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                    Exportando...
+                  </>
+                ) : (
+                  <>
+                    <Download className="mr-2 h-4 w-4" />
+                    <span>Exportar</span>
+                  </>
+                )}
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleExport('pdf')}>
-                <FileText className="mr-2 h-4 w-4" />
+              <DropdownMenuItem onClick={() => handleExport('pdf')} disabled={isExporting}>
+                <FilePdf className="mr-2 h-4 w-4" />
                 <span>Exportar como PDF</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport('excel')}>
-                <FileText className="mr-2 h-4 w-4" />
+              <DropdownMenuItem onClick={() => handleExport('excel')} disabled={isExporting}>
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
                 <span>Exportar como Excel</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport('ofx')}>
+              <DropdownMenuItem onClick={() => handleExport('ofx')} disabled={isExporting}>
                 <FileText className="mr-2 h-4 w-4" />
                 <span>Exportar como OFX</span>
               </DropdownMenuItem>
