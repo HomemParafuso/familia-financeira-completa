@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/Dashboard';
 import { useFinance } from '@/contexts/FinanceContext';
@@ -757,14 +756,14 @@ NEWFILEUID:NONE
                     dataKey="income" 
                     name="Receitas" 
                     fill="#10b981" 
-                    fillOpacity={data => data.isProjected ? 0.6 : 1}
+                    fillOpacity={0.8}
                     radius={[4, 4, 0, 0]}
                   />
                   <Bar 
                     dataKey="expenses" 
                     name="Despesas" 
                     fill="#ef4444" 
-                    fillOpacity={data => data.isProjected ? 0.6 : 1}
+                    fillOpacity={0.8}
                     radius={[4, 4, 0, 0]} 
                   />
                   <Line
