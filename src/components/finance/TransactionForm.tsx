@@ -124,11 +124,20 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ initialData, onClose,
         groupId: currentGroup?.id
       };
       
-      const result = addCategory(newCategory);
-      // Only set categoryId if result is a string (the new category ID)
-      if (result && typeof result === 'string') {
-        setCategoryId(result);
+      // Call addCategory and try to get the newly created category ID
+      addCategory(newCategory);
+      
+      // Find the newly created category in the updated categories list
+      // We need to do this since we can't directly test the result of addCategory for truthiness
+      const newCatId = categories.find(
+        c => c.name === newCategoryName.trim() && c.type === type
+      )?.id;
+      
+      // If we found the new category ID, update the selected category
+      if (newCatId) {
+        setCategoryId(newCatId);
       }
+      
       setIsNewCategoryOpen(false);
       setNewCategoryName('');
     }
