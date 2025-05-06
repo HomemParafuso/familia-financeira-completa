@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from 'react';
-import { Transaction, Category, Budget, FinancialSummary } from '@/types/finance';
+import { Transaction, Category, Budget, FinancialSummary, FinancialForecast } from '@/types/finance';
 import { 
   addTransaction as addTransactionService, 
   updateTransaction as updateTransactionService,
@@ -18,7 +18,8 @@ import {
   deleteBudget as deleteBudgetService
 } from '@/services/budgetService';
 import { 
-  calculateFinancialSummary 
+  calculateFinancialSummary,
+  calculateFinancialForecast
 } from '@/services/financeService';
 
 export const useFinanceActions = (initialData: {
@@ -33,10 +34,14 @@ export const useFinanceActions = (initialData: {
   const [summary, setSummary] = useState<FinancialSummary | null>(
     calculateFinancialSummary(initialData.transactions, initialData.categories)
   );
+  const [forecast, setForecast] = useState<FinancialForecast | null>(
+    calculateFinancialForecast(initialData.transactions, initialData.categories)
+  );
 
   // Update summary when transactions or categories change
   const updateSummary = useCallback(() => {
     setSummary(calculateFinancialSummary(transactions, categories));
+    setForecast(calculateFinancialForecast(transactions, categories));
   }, [transactions, categories]);
 
   // Transaction actions
@@ -106,6 +111,7 @@ export const useFinanceActions = (initialData: {
     categories,
     budgets,
     summary,
+    forecast,
     
     // Transaction actions
     addTransaction,

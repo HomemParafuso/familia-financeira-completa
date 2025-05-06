@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/Dashboard';
 import { useFinance } from '@/contexts/FinanceContext';
@@ -13,7 +14,10 @@ import {
   YAxis,
   Tooltip,
   Legend,
-  CartesianGrid
+  CartesianGrid,
+  LineChart,
+  Line,
+  ComposedChart
 } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -32,12 +36,13 @@ import {
 } from '@/components/ui/select';
 import { useGroup } from '@/contexts/GroupContext';
 import { toast } from 'sonner';
-import { FileText, Download, File } from 'lucide-react';
+import { File, FileText, Download } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1'];
 
 const ReportsPage: React.FC = () => {
-  const { transactions, categories, summary, isLoading } = useFinance();
+  const { transactions, categories, summary, forecast, isLoading } = useFinance();
   const { currentGroup, canUserPerform, getUserReport } = useGroup();
   const [reportType, setReportType] = useState('expenses');
   const [selectedMemberId, setSelectedMemberId] = useState<string | 'all'>('all');
@@ -373,7 +378,7 @@ NEWFILEUID:NONE
     }
   };
 
-  if (isLoading || !summary) {
+  if (isLoading || !summary || !forecast) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
@@ -410,6 +415,39 @@ NEWFILEUID:NONE
       );
     }
     return null;
+  };
+  
+  // Custom tooltip for the forecast chart
+  const ForecastTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const isProjected = payload[0]?.payload?.isProjected;
+      return (
+        <div className="bg-white p-3 border shadow-md rounded-md">
+          <p className="font-medium">{`${formatMonth(label)} ${label.split('-')[0]}`}</p>
+          <p className="text-sm text-emerald-500">{`Receitas: ${formatCurrency(payload[0].value)}`}</p>
+          <p className="text-sm text-red-500">{`Despesas: ${formatCurrency(payload[1].value)}`}</p>
+          <p className="text-sm font-medium">{`Saldo: ${formatCurrency(payload[0].value - payload[1].value)}`}</p>
+          {isProjected && (
+            <p className="text-xs text-gray-500 mt-1 font-italic">(Valor projetado)</p>
+          )}
+        </div>
+      );
+    }
+    return null;
+  };
+  
+  // Determinar se uma categoria tem tendência positiva, neutra ou negativa
+  const getCategoryTrendIndicator = (trend: number) => {
+    if (trend > 5) return "text-red-500";
+    if (trend < -5) return "text-emerald-500";
+    return "text-amber-500";
+  };
+  
+  // Obter texto da tendência
+  const getTrendText = (trend: number) => {
+    if (trend > 5) return `${trend.toFixed(1)}% acima da média`;
+    if (trend < -5) return `${Math.abs(trend).toFixed(1)}% abaixo da média`;
+    return "Estável";
   };
 
   return (
@@ -477,6 +515,7 @@ NEWFILEUID:NONE
         <TabsList>
           <TabsTrigger value="monthly">Evolução Mensal</TabsTrigger>
           <TabsTrigger value="category">Categorias</TabsTrigger>
+          <TabsTrigger value="forecast">Previsão Orçamentária</TabsTrigger>
         </TabsList>
         
         <TabsContent value="monthly" className="space-y-4">
@@ -624,6 +663,275 @@ NEWFILEUID:NONE
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+        
+        <TabsContent value="forecast" className="space-y-4">
+          {/* Visão geral do mês atual */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Previsão para o mês atual ({formatMonth(forecast.currentMonth.month)} {forecast.currentMonth.month.split('-')[0]})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Progresso do mês:</span>
+                      <span className="font-medium">{forecast.currentMonth.daysElapsed} de {forecast.currentMonth.totalDays} dias ({forecast.currentMonth.completionPercentage.toFixed(0)}%)</span>
+                    </div>
+                    <Progress value={forecast.currentMonth.completionPercentage} className="h-2" />
+                  </div>
+                  
+                  <div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Receitas até o momento</p>
+                        <p className="text-lg font-medium text-emerald-500">{formatCurrency(forecast.currentMonth.incomeToDate)}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Previsão de receitas</p>
+                        <p className="text-lg font-medium">{formatCurrency(forecast.currentMonth.projectedIncome)}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Despesas até o momento</p>
+                        <p className="text-lg font-medium text-red-500">{formatCurrency(forecast.currentMonth.expensesToDate)}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Previsão de despesas</p>
+                        <p className="text-lg font-medium">{formatCurrency(forecast.currentMonth.projectedExpenses)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <h3 className="font-medium text-lg">Balanço Projetado</h3>
+                  <div className={`text-3xl font-bold ${forecast.currentMonth.projectedBalance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {formatCurrency(forecast.currentMonth.projectedBalance)}
+                  </div>
+                  
+                  <div className="pt-4">
+                    <p className="text-sm text-muted-foreground mb-1">Situação financeira projetada:</p>
+                    <div className={`text-sm font-medium ${forecast.currentMonth.projectedBalance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {forecast.currentMonth.projectedBalance >= 0 
+                        ? '✓ Saldo positivo projetado para este mês' 
+                        : '⚠️ Déficit projetado para este mês'}
+                    </div>
+                    
+                    {forecast.currentMonth.projectedBalance < 0 && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Considere reduzir despesas ou aumentar receitas para equilibrar seu orçamento.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Gráfico de projeção futura */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Projeção para os próximos meses</CardTitle>
+            </CardHeader>
+            <CardContent className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart
+                  data={forecast.projectedMonths}
+                  margin={{
+                    top: 20,
+                    right: 30,
+                    left: 20,
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="month" 
+                    tickFormatter={formatMonth}
+                  />
+                  <YAxis tickFormatter={(value) => `R$${value/1000}k`} />
+                  <Tooltip content={<ForecastTooltip />} />
+                  <Legend />
+                  <Bar 
+                    dataKey="income" 
+                    name="Receitas" 
+                    fill="#10b981" 
+                    fillOpacity={data => data.isProjected ? 0.6 : 1}
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar 
+                    dataKey="expenses" 
+                    name="Despesas" 
+                    fill="#ef4444" 
+                    fillOpacity={data => data.isProjected ? 0.6 : 1}
+                    radius={[4, 4, 0, 0]} 
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="balance"
+                    name="Saldo"
+                    stroke="#7E69AB"
+                    strokeWidth={2}
+                    dot={{ strokeWidth: 2 }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+          
+          {/* Tendências por Categoria */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Categorias com Maiores Variações</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {forecast.categoriesTrend.slice(0, 6).map((cat, index) => (
+                    <div key={index} className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">{cat.category}</span>
+                        <div className="flex items-center gap-2">
+                          <span className={getCategoryTrendIndicator(cat.trend)}>
+                            {getTrendText(cat.trend)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Atual: {formatCurrency(cat.currentAmount)}</span>
+                        <span>Projeção: {formatCurrency(cat.projectedAmount)}</span>
+                      </div>
+                      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full" 
+                          style={{
+                            width: `${Math.min(100, (cat.projectedAmount / forecast.categoriesTrend[0].projectedAmount) * 100)}%`,
+                            backgroundColor: COLORS[index % COLORS.length]
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Projeção Anual */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Projeção Anual ({forecast.yearProjection.year})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Receitas realizadas</p>
+                      <p className="text-lg font-medium text-emerald-500">{formatCurrency(forecast.yearProjection.incomeToDate)}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Receitas projetadas</p>
+                      <p className="text-lg font-medium">{formatCurrency(forecast.yearProjection.projectedIncome)}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Despesas realizadas</p>
+                      <p className="text-lg font-medium text-red-500">{formatCurrency(forecast.yearProjection.expensesToDate)}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Despesas projetadas</p>
+                      <p className="text-lg font-medium">{formatCurrency(forecast.yearProjection.projectedExpenses)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-2">
+                    <h3 className="font-medium mb-2">Saldo anual projetado:</h3>
+                    <div className={`text-2xl font-bold ${forecast.yearProjection.projectedBalance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {formatCurrency(forecast.yearProjection.projectedBalance)}
+                    </div>
+                    
+                    <div className="pt-4">
+                      <p className="text-sm text-muted-foreground">Índice de economia projetado:</p>
+                      <p className="font-medium">
+                        {forecast.yearProjection.projectedIncome > 0 
+                          ? `${((forecast.yearProjection.projectedBalance / forecast.yearProjection.projectedIncome) * 100).toFixed(1)}%` 
+                          : '0%'
+                        }
+                        <span className="text-sm text-muted-foreground ml-2">
+                          da renda anual
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Dicas e recomendações */}
+          <Card className="bg-slate-50 dark:bg-slate-900">
+            <CardHeader>
+              <CardTitle className="text-primary">Dicas e Recomendações</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {forecast.currentMonth.projectedBalance < 0 && (
+                  <div className="flex items-start space-x-3">
+                    <div className="rounded-full bg-red-100 p-2 text-red-600">
+                      ⚠️
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Alerta de déficit mensal</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Suas despesas estão projetadas para exceder suas receitas este mês. Considere revisar gastos não essenciais.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {forecast.yearProjection.projectedBalance < 0 && (
+                  <div className="flex items-start space-x-3">
+                    <div className="rounded-full bg-red-100 p-2 text-red-600">
+                      ⚠️
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Alerta de déficit anual</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Sua projeção anual indica um déficit. Considere estratégias para aumentar receitas ou reduzir despesas regulares.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {forecast.categoriesTrend.some(cat => cat.trend > 20) && (
+                  <div className="flex items-start space-x-3">
+                    <div className="rounded-full bg-amber-100 p-2 text-amber-600">
+                      ⚠️
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Categorias com aumento significativo</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Algumas categorias estão com gastos muito acima da média. Considere revisar seus hábitos de consumo nestas áreas.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {forecast.yearProjection.projectedBalance > 0 && (
+                  <div className="flex items-start space-x-3">
+                    <div className="rounded-full bg-green-100 p-2 text-green-600">
+                      ✓
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Perspectiva positiva</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Sua projeção anual indica um saldo positivo. Considere investir parte deste valor para objetivos de longo prazo.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </DashboardLayout>

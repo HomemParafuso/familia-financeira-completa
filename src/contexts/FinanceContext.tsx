@@ -1,6 +1,6 @@
 
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { Transaction, Category, Budget, FinancialSummary } from '@/types/finance';
+import { Transaction, Category, Budget, FinancialSummary, FinancialForecast } from '@/types/finance';
 import { loadInitialFinanceData } from '@/services/financeService';
 import { useFinanceActions } from '@/hooks/useFinanceActions';
 
@@ -9,6 +9,7 @@ interface FinanceContextType {
   categories: Category[];
   budgets: Budget[];
   summary: FinancialSummary | null;
+  forecast: FinancialForecast | null;
   addTransaction: (transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateTransaction: (transaction: Transaction) => void;
   deleteTransaction: (id: string) => void;

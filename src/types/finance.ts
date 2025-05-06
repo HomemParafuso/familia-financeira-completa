@@ -66,3 +66,44 @@ export interface Budget {
 }
 
 export type ReportFormat = 'pdf' | 'excel' | 'ofx';
+
+export interface FinancialForecast {
+  currentMonth: {
+    month: string;
+    daysElapsed: number;
+    totalDays: number;
+    incomeToDate: number;
+    expensesToDate: number;
+    projectedIncome: number;
+    projectedExpenses: number;
+    projectedBalance: number;
+    completionPercentage: number;
+  };
+  historicalData: {
+    month: string;
+    income: number;
+    expenses: number;
+    balance: number;
+  }[];
+  projectedMonths: {
+    month: string;
+    income: number;
+    expenses: number;
+    balance: number;
+    isProjected: boolean;
+  }[];
+  yearProjection: {
+    year: number;
+    incomeToDate: number;
+    expensesToDate: number;
+    projectedIncome: number;
+    projectedExpenses: number;
+    projectedBalance: number;
+  };
+  categoriesTrend: {
+    category: string;
+    currentAmount: number;
+    projectedAmount: number;
+    trend: number;
+  }[];
+}
