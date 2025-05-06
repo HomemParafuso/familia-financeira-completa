@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -123,9 +124,10 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ initialData, onClose,
         groupId: currentGroup?.id
       };
       
-      const newCategoryId = addCategory(newCategory);
-      if (newCategoryId) {
-        setCategoryId(newCategoryId);
+      const result = addCategory(newCategory);
+      // Only set categoryId if result is a string (the new category ID)
+      if (result && typeof result === 'string') {
+        setCategoryId(result);
       }
       setIsNewCategoryOpen(false);
       setNewCategoryName('');
