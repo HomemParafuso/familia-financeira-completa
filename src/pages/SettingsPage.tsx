@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/Dashboard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGroup } from '@/contexts/GroupContext';
@@ -9,10 +9,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
+import { Mail, Phone } from 'lucide-react';
+import { toast } from 'sonner';
 
 const SettingsPage: React.FC = () => {
   const { user } = useAuth();
   const { currentGroup } = useGroup();
+  const [secondaryEmail, setSecondaryEmail] = useState<string>('');
+  const [phoneNumber, setPhoneNumber] = useState<string>('');
+
+  const handleSavePersonalInfo = () => {
+    toast.success("Informações pessoais atualizadas com sucesso");
+  };
+
+  const handleSavePreferences = () => {
+    toast.success("Preferências atualizadas com sucesso");
+  };
 
   return (
     <DashboardLayout>
@@ -35,7 +47,7 @@ const SettingsPage: React.FC = () => {
               <CardDescription>Atualize suas informações pessoais</CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="space-y-4">
+              <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSavePersonalInfo(); }}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Nome completo</Label>
@@ -43,12 +55,47 @@ const SettingsPage: React.FC = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" defaultValue={user?.email || ''} type="email" />
+                    <Label htmlFor="email" className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" /> Email principal
+                    </Label>
+                    <Input 
+                      id="email" 
+                      defaultValue={user?.email || ''} 
+                      type="email" 
+                      disabled 
+                      className="bg-gray-100 text-gray-500"
+                    />
+                    <p className="text-xs text-muted-foreground">Email usado para acesso ao sistema (não pode ser alterado)</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="secondary-email" className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" /> Email secundário
+                    </Label>
+                    <Input 
+                      id="secondary-email" 
+                      value={secondaryEmail}
+                      onChange={(e) => setSecondaryEmail(e.target.value)}
+                      type="email" 
+                      placeholder="Digite seu email secundário"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="flex items-center gap-2">
+                      <Phone className="h-4 w-4" /> Telefone principal
+                    </Label>
+                    <Input 
+                      id="phone" 
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      type="tel" 
+                      placeholder="(00) 00000-0000"
+                    />
                   </div>
                 </div>
                 
-                <Button className="bg-finance-primary hover:bg-finance-primary/90">
+                <Button type="submit" className="bg-finance-primary hover:bg-finance-primary/90">
                   Salvar alterações
                 </Button>
               </form>

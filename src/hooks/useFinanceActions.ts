@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Transaction, Category, Budget, FinancialSummary, FinancialForecast } from '@/types/finance';
 import { 
   addTransaction as addTransactionService, 
@@ -39,7 +39,7 @@ export const useFinanceActions = (initialData: {
   );
 
   // Update summary when transactions or categories change
-  const updateSummary = useCallback(() => {
+  useEffect(() => {
     setSummary(calculateFinancialSummary(transactions, categories));
     setForecast(calculateFinancialForecast(transactions, categories));
   }, [transactions, categories]);
@@ -48,41 +48,35 @@ export const useFinanceActions = (initialData: {
   const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => {
     const updatedTransactions = addTransactionService(transactions, transaction);
     setTransactions(updatedTransactions);
-    updateSummary();
-  }, [transactions, updateSummary]);
+  }, [transactions]);
 
   const updateTransaction = useCallback((transaction: Transaction) => {
     const updatedTransactions = updateTransactionService(transactions, transaction);
     setTransactions(updatedTransactions);
-    updateSummary();
-  }, [transactions, updateSummary]);
+  }, [transactions]);
 
   const deleteTransaction = useCallback((id: string) => {
     const updatedTransactions = deleteTransactionService(transactions, id);
     setTransactions(updatedTransactions);
-    updateSummary();
-  }, [transactions, updateSummary]);
+  }, [transactions]);
 
   // Category actions
   const addCategory = useCallback((category: Omit<Category, 'id'>) => {
     const updatedCategories = addCategoryService(categories, category);
     setCategories(updatedCategories);
-    updateSummary();
-  }, [categories, updateSummary]);
+  }, [categories]);
 
   const updateCategory = useCallback((category: Category) => {
     const updatedCategories = updateCategoryService(categories, category);
     setCategories(updatedCategories);
-    updateSummary();
-  }, [categories, updateSummary]);
+  }, [categories]);
 
   const deleteCategory = useCallback((id: string) => {
     const result = deleteCategoryService(categories, transactions, id);
     if (result.success) {
       setCategories(result.categories);
-      updateSummary();
     }
-  }, [categories, transactions, updateSummary]);
+  }, [categories, transactions]);
 
   // Budget actions
   const addBudget = useCallback((budget: Omit<Budget, 'id'>) => {

@@ -9,8 +9,7 @@ import {
   PieChart,
   Settings,
   Tag,
-  Users,
-  Shield
+  Users
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -21,7 +20,6 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const location = useLocation();
-  const { user } = useAuth();
   
   // Define navigation items
   const navigationItems = [
@@ -68,16 +66,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       current: location.pathname === '/settings',
     },
   ];
-  
-  // Add admin page only for admins
-  if (user?.role === 'admin') {
-    navigationItems.push({
-      name: 'Administração',
-      href: '/admin',
-      icon: Shield,
-      current: location.pathname === '/admin',
-    });
-  }
 
   return (
     <>
