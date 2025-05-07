@@ -3,8 +3,7 @@ import {
   Category, 
   Budget, 
   FinancialSummary, 
-  FinancialForecast,
-  MonthlyData
+  FinancialForecast
 } from '@/types/finance';
 import { mockCategories } from '@/mockData';
 import { 

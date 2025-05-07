@@ -1,4 +1,3 @@
-
 import { Budget } from '@/types/finance';
 import { toast } from 'sonner';
 
@@ -34,7 +33,6 @@ export const addBudget = (
   const newBudget: Budget = {
     ...budget,
     id: `b${Date.now()}`,
-    createdAt: now,
     updatedAt: now
   };
   
