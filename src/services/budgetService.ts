@@ -1,3 +1,4 @@
+
 import { Budget } from '@/types/finance';
 import { toast } from 'sonner';
 
@@ -32,8 +33,7 @@ export const addBudget = (
   const now = new Date().toISOString();
   const newBudget: Budget = {
     ...budget,
-    id: `b${Date.now()}`,
-    updatedAt: now
+    id: `b${Date.now()}`
   };
   
   const result = [...budgets, newBudget];
@@ -49,7 +49,7 @@ export const updateBudget = (
 ): Budget[] => {
   const result = budgets.map(b => 
     b.id === updatedBudget.id 
-      ? { ...updatedBudget, updatedAt: new Date().toISOString() } 
+      ? { ...updatedBudget } 
       : b
   );
   

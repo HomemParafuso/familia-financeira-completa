@@ -1,9 +1,9 @@
-
 import { useState } from 'react';
 import { Group, GroupMember, Permission, GroupRole, User } from '@/types/auth';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ReportFormat } from '@/types/finance';
+import { sendInvitationEmail, sendPasswordResetEmail as sendResetEmail } from '@/services/emailService';
 
 // Constante para guardar a chave do localStorage
 const STORAGE_KEY = 'finance_groups';
@@ -163,9 +163,22 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
     
     updateGroup(updatedGroup);
     
-    // Simulação do envio de email para o usuário
-    console.log(`EMAIL enviado para: ${name} <${userId}> convidando para o grupo ${group.name}`);
-    toast.success(`Membro adicionado com sucesso! Um email de convite foi enviado para ${name}.`);
+    // Enviar email de convite para o novo membro
+    const baseUrl = window.location.origin;
+    const activationLink = `${baseUrl}/activate-account?userId=${userId}&groupId=${groupId}`;
+    
+    sendInvitationEmail(
+      userId, // Usando o userId como email do membro
+      group.name,
+      user?.name || 'Administrador do grupo',
+      activationLink
+    ).then(sent => {
+      if (sent) {
+        toast.success(`Membro adicionado com sucesso! Um email de convite foi enviado para ${name}.`);
+      } else {
+        toast.warning(`Membro adicionado com sucesso, mas não foi possível enviar o email de convite. Peça ao membro para verificar o spam ou tente novamente mais tarde.`);
+      }
+    });
   };
 
   const updateMemberPermissions = (
@@ -328,7 +341,7 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
     }, 1000);
   };
 
-  // Função para enviar email de recuperação de senha (simulação)
+  // Função para enviar email de recuperação de senha (usando o novo serviço de email)
   const sendPasswordResetEmail = (email: string) => {
     // Verificar se o email pertence a algum membro de algum grupo
     let foundMember = false;
@@ -341,9 +354,19 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
     }
     
     if (foundMember) {
-      // Simular envio de email de recuperação
-      console.log(`EMAIL de recuperação de senha enviado para: ${email}`);
-      toast.success(`Um link para redefinição de senha foi enviado para ${email}`);
+      // Enviar email de recuperação usando o serviço de email
+      const baseUrl = window.location.origin;
+      const resetLink = `${baseUrl}/reset-password?email=${encodeURIComponent(email)}&token=${Date.now()}`;
+      
+      sendResetEmail(email, resetLink)
+        .then(sent => {
+          if (sent) {
+            toast.success(`Um link para redefinição de senha foi enviado para ${email}`);
+          } else {
+            toast.error(`Não foi possível enviar o email de recuperação. Tente novamente mais tarde.`);
+          }
+        });
+      
       return true;
     } else {
       toast.error('Email não encontrado no sistema');
