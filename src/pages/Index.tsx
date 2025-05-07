@@ -72,7 +72,7 @@ const Index: React.FC = () => {
           <div className="mt-12 relative">
             <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent z-10 pointer-events-none h-12 bottom-0 top-auto"></div>
             <img 
-              src="https://i.imgur.com/ptz3UXN.png" 
+              src="/placeholder.svg" 
               alt="Dashboard Preview" 
               className="mx-auto rounded-lg shadow-xl border border-border" 
             />
