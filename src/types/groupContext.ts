@@ -19,4 +19,5 @@ export interface GroupContextType {
   getGroupAdmin: (groupId: string) => GroupMember | undefined;
   getUserReport: (userId: string) => any; // Para obter relatório específico de um usuário
   exportReport: (format: 'pdf' | 'excel' | 'ofx') => void;
+  sendPasswordResetEmail: (email: string) => boolean; // Nova função para recuperação de senha
 }

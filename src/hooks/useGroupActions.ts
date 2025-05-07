@@ -1,14 +1,49 @@
 
 import { useState } from 'react';
-import { Group, GroupMember, Permission, GroupRole } from '@/types/auth';
+import { Group, GroupMember, Permission, GroupRole, User } from '@/types/auth';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ReportFormat } from '@/types/finance';
 
+// Constante para guardar a chave do localStorage
+const STORAGE_KEY = 'finance_groups';
+
+// Função para carregar grupos do localStorage
+const loadGroups = (): Group[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Error loading groups from localStorage', error);
+    return [];
+  }
+};
+
+// Função para salvar grupos no localStorage
+const saveGroups = (groups: Group[]): void => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
+  } catch (error) {
+    console.error('Error saving groups to localStorage', error);
+  }
+};
+
 export const useGroupActions = (initialGroups: Group[] = []) => {
   const { user } = useAuth();
-  const [groups, setGroups] = useState<Group[]>(initialGroups);
+  
+  // Carregando grupos do localStorage ou usando os iniciais
+  const [groups, setGroups] = useState<Group[]>(() => {
+    const storedGroups = loadGroups();
+    return storedGroups.length > 0 ? storedGroups : initialGroups;
+  });
+  
   const [currentGroup, setCurrentGroup] = useState<Group | null>(null);
+
+  // Função auxiliar para salvar grupos e atualizar o estado
+  const updateAndSaveGroups = (newGroups: Group[]) => {
+    setGroups(newGroups);
+    saveGroups(newGroups);
+  };
 
   // CRUD operations
   const createGroup = (name: string, description?: string) => {
@@ -43,13 +78,15 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
       createdAt: new Date().toISOString()
     };
     
-    setGroups([...groups, newGroup]);
+    const updatedGroups = [...groups, newGroup];
+    updateAndSaveGroups(updatedGroups);
     setCurrentGroup(newGroup);
     toast.success('Grupo criado com sucesso!');
   };
 
   const updateGroup = (updatedGroup: Group) => {
-    setGroups(groups.map(g => g.id === updatedGroup.id ? updatedGroup : g));
+    const updatedGroups = groups.map(g => g.id === updatedGroup.id ? updatedGroup : g);
+    updateAndSaveGroups(updatedGroups);
     
     if (currentGroup?.id === updatedGroup.id) {
       setCurrentGroup(updatedGroup);
@@ -69,7 +106,8 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
       return;
     }
     
-    setGroups(groups.filter(g => g.id !== id));
+    const updatedGroups = groups.filter(g => g.id !== id);
+    updateAndSaveGroups(updatedGroups);
     
     if (currentGroup?.id === id) {
       setCurrentGroup(null);
@@ -124,7 +162,10 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
     };
     
     updateGroup(updatedGroup);
-    toast.success('Membro adicionado com sucesso!');
+    
+    // Simulação do envio de email para o usuário
+    console.log(`EMAIL enviado para: ${name} <${userId}> convidando para o grupo ${group.name}`);
+    toast.success(`Membro adicionado com sucesso! Um email de convite foi enviado para ${name}.`);
   };
 
   const updateMemberPermissions = (
@@ -228,13 +269,23 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
       return;
     }
     
-    const updatedGroup = {
-      ...group,
-      members: group.members.filter(m => m.userId !== userId)
-    };
-    
-    updateGroup(updatedGroup);
-    toast.success('Membro removido com sucesso!');
+    // Perguntar se deseja excluir os dados financeiros
+    if (confirm(`Deseja excluir o membro ${targetMember?.name}?`)) {
+      if (confirm(`Tem certeza que deseja excluir tudo que o usuário ${targetMember?.name} alimentou? Isso vai alterar os valores do seu grupo econômico!`)) {
+        // Lógica para excluir dados financeiros (simulação)
+        console.log(`Excluindo todos os dados financeiros do membro ${targetMember?.name}`);
+        toast.success(`Todos os dados do membro ${targetMember?.name} foram excluídos`);
+      } else {
+        toast.info(`O membro ${targetMember?.name} foi removido, mas seus dados financeiros foram mantidos`);
+      }
+      
+      const updatedGroup = {
+        ...group,
+        members: group.members.filter(m => m.userId !== userId)
+      };
+      
+      updateGroup(updatedGroup);
+    }
   };
 
   // User expiration management for system admin
@@ -275,6 +326,29 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
     setTimeout(() => {
       toast.success(`Relatório exportado em formato ${format.toUpperCase()}`);
     }, 1000);
+  };
+
+  // Função para enviar email de recuperação de senha (simulação)
+  const sendPasswordResetEmail = (email: string) => {
+    // Verificar se o email pertence a algum membro de algum grupo
+    let foundMember = false;
+    
+    for (const group of groups) {
+      if (group.members.some(m => m.userId === email)) {
+        foundMember = true;
+        break;
+      }
+    }
+    
+    if (foundMember) {
+      // Simular envio de email de recuperação
+      console.log(`EMAIL de recuperação de senha enviado para: ${email}`);
+      toast.success(`Um link para redefinição de senha foi enviado para ${email}`);
+      return true;
+    } else {
+      toast.error('Email não encontrado no sistema');
+      return false;
+    }
   };
 
   // Helper functions
@@ -332,7 +406,7 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
 
   return {
     groups,
-    setGroups,
+    setGroups: updateAndSaveGroups,
     currentGroup,
     setCurrentGroup,
     createGroup,
@@ -347,6 +421,7 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
     setUserExpiration,
     getGroupAdmin,
     getUserReport,
-    exportReport
+    exportReport,
+    sendPasswordResetEmail
   };
 };

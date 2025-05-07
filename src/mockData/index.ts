@@ -81,9 +81,9 @@ export const mockCategories: Category[] = [
 export const mockTransactions: Transaction[] = [];
 export const mockUsers: User[] = [
   {
-    id: 'u1',
-    name: 'Usuário',
-    email: 'usuario@example.com',
+    id: 'admin@sistema.com',
+    name: 'Administrador',
+    email: 'admin@sistema.com',
     role: 'admin',
     createdAt: new Date().toISOString(),
     avatar: ''

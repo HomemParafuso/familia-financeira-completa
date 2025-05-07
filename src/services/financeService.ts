@@ -1,25 +1,52 @@
+import { 
+  Transaction, 
+  Category, 
+  Budget, 
+  FinancialSummary, 
+  FinancialForecast,
+  MonthlyData
+} from '@/types/finance';
+import { mockCategories } from '@/mockData';
+import { 
+  initializeTransactions 
+} from './transactionService';
+import { 
+  initializeCategories 
+} from './categoryService';
+import { 
+  initializeBudgets 
+} from './budgetService';
+import { 
+  startOfMonth, 
+  endOfMonth, 
+  subMonths,
+  format,
+  addMonths,
+  isBefore,
+  isAfter
+} from 'date-fns';
 
-import { Transaction, Category, Budget, FinancialSummary, FinancialForecast } from '@/types/finance';
-import { mockTransactions, mockCategories, mockBudgets } from '@/mockData';
-import { toast } from 'sonner';
-import { addMonths, format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
-
-// Load initial finance data
+// Initial data load
 export const loadInitialFinanceData = async () => {
-  try {
-    // In a real app, this would be API calls
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const transactions = mockTransactions;
-    const categories = mockCategories;
-    const budgets = mockBudgets;
-    
-    return { transactions, categories, budgets };
-  } catch (error) {
-    console.error('Error loading finance data:', error);
-    toast.error('Erro ao carregar dados financeiros');
-    return { transactions: [], categories: [], budgets: [] };
+  const transactions = initializeTransactions();
+  
+  // Verificar se há categorias no localStorage
+  let categories = initializeCategories();
+  
+  // Se não houver categorias no localStorage, usar as categorias padrão
+  if (categories.length === 0) {
+    categories = mockCategories;
+    // Salvar categorias padrão no localStorage
+    localStorage.setItem('finance_categories', JSON.stringify(categories));
   }
+  
+  const budgets = initializeBudgets();
+  
+  return {
+    transactions,
+    categories,
+    budgets
+  };
 };
 
 // Calculate financial summary

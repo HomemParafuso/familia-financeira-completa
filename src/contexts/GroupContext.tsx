@@ -2,11 +2,9 @@
 import React, { createContext, useContext, ReactNode, useEffect, useState } from 'react';
 import { Group } from '@/types/auth';
 import { GroupContextType } from '@/types/groupContext';
-import { mockGroups } from '@/mockData';
 import { useAuth } from './AuthContext';
 import { useGroupActions } from '@/hooks/useGroupActions';
 import { toast } from 'sonner';
-import { ReportFormat } from '@/types/finance';
 
 const GroupContext = createContext<GroupContextType | undefined>(undefined);
 
@@ -31,39 +29,19 @@ export const GroupProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setUserExpiration,
     getGroupAdmin,
     getUserReport,
-    exportReport
+    exportReport,
+    sendPasswordResetEmail
   } = useGroupActions([]);
 
   // Load initial data
   useEffect(() => {
     const loadData = async () => {
       try {
-        // In a real app, this would be API calls
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Garantir que cada grupo tenha exatamente um administrador
-        const updatedGroups = mockGroups.map(group => {
-          // Encontrar o primeiro administrador
-          const adminIndex = group.members.findIndex(m => m.role === 'admin');
-          if (adminIndex !== -1) {
-            // Atualizar todos os outros admin para member
-            return {
-              ...group,
-              members: group.members.map((m, idx) => 
-                idx !== adminIndex && m.role === 'admin'
-                  ? { ...m, role: 'member' as const }
-                  : m
-              )
-            };
-          }
-          return group;
-        });
-        
-        setGroups(updatedGroups);
+        setIsLoading(false);
         
         // Set current group if user belongs to any
-        if (user) {
-          const userGroups = updatedGroups.filter(group => 
+        if (user && groups.length > 0) {
+          const userGroups = groups.filter(group => 
             group.members.some(member => member.userId === user.id)
           );
           
@@ -80,7 +58,7 @@ export const GroupProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
     
     loadData();
-  }, [user, setGroups, setCurrentGroup]);
+  }, [user, setCurrentGroup]);
 
   return (
     <GroupContext.Provider
@@ -101,7 +79,8 @@ export const GroupProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setUserExpiration,
         getGroupAdmin,
         getUserReport,
-        exportReport
+        exportReport,
+        sendPasswordResetEmail
       }}
     >
       {children}
