@@ -1,6 +1,22 @@
 
-// Email service for sending emails to users
+// Email service for sending real emails to users using EmailJS
 import { toast } from 'sonner';
+import emailjs from 'emailjs-com';
+
+// Configuração do EmailJS - você precisará criar uma conta em emailjs.com
+// e configurar os templates e IDs do serviço
+const EMAILJS_SERVICE_ID = 'service_financas_familiares';  // Substitua pelo seu ID de serviço
+const EMAILJS_USER_ID = 'YOUR_USER_ID'; // Substitua pelo seu User ID do EmailJS
+const INVITATION_TEMPLATE_ID = 'template_invitation';  // Template para convites
+const RESET_PASSWORD_TEMPLATE_ID = 'template_reset_password'; // Template para redefinição de senha
+
+// Inicialização do EmailJS
+const initEmailJS = () => {
+  emailjs.init(EMAILJS_USER_ID);
+};
+
+// Inicializa o EmailJS automaticamente
+initEmailJS();
 
 interface EmailOptions {
   to: string;
@@ -9,27 +25,42 @@ interface EmailOptions {
   type: 'invitation' | 'reset_password' | 'account_activation';
 }
 
-// In a real application, this would connect to a backend service
+// Função para enviar emails usando o serviço EmailJS
 export const sendEmail = async (options: EmailOptions): Promise<boolean> => {
   try {
-    // Here we would connect to a real email service API
-    console.log(`SENDING EMAIL:
-    To: ${options.to}
-    Subject: ${options.subject}
-    Type: ${options.type}
-    Body: ${options.body}`);
+    console.log(`Preparando para enviar email para ${options.to}`);
     
-    // Simulate network request
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Prepara as variáveis do template com base no tipo de email
+    const templateId = options.type === 'reset_password' 
+      ? RESET_PASSWORD_TEMPLATE_ID 
+      : INVITATION_TEMPLATE_ID;
     
-    // In a real application, verify email sending was successful
-    // For now, we'll just show a toast notification for testing
-    toast.success(`Email enviado para ${options.to}`);
+    // Dados a serem enviados para o template do EmailJS
+    const templateParams = {
+      to_email: options.to,
+      to_name: options.to.split('@')[0], // Usa a parte inicial do email como nome (você pode ajustar isso)
+      subject: options.subject,
+      message: options.body,
+      // Remova HTML do corpo para compatibilidade com diferentes provedores de email
+      plain_message: options.body.replace(/<[^>]*>?/gm, '')
+    };
     
-    // Return success
-    return true;
+    // Envia o email usando o EmailJS
+    const response = await emailjs.send(
+      EMAILJS_SERVICE_ID,
+      templateId,
+      templateParams
+    );
+    
+    if (response.status === 200) {
+      console.log('Email enviado com sucesso:', response);
+      toast.success(`Email enviado para ${options.to}`);
+      return true;
+    } else {
+      throw new Error(`Falha ao enviar email: ${response.text}`);
+    }
   } catch (error) {
-    console.error('Failed to send email:', error);
+    console.error('Falha ao enviar email:', error);
     toast.error(`Falha ao enviar email para ${options.to}`);
     return false;
   }
