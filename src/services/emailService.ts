@@ -5,10 +5,10 @@ import emailjs from 'emailjs-com';
 
 // Configuração do EmailJS - você precisará criar uma conta em emailjs.com
 // e configurar os templates e IDs do serviço
-const EMAILJS_SERVICE_ID = 'service_financas_familiares';  // Substitua pelo seu ID de serviço
-const EMAILJS_USER_ID = 'YOUR_USER_ID'; // Substitua pelo seu User ID do EmailJS
-const INVITATION_TEMPLATE_ID = 'template_invitation';  // Template para convites
-const RESET_PASSWORD_TEMPLATE_ID = 'template_reset_password'; // Template para redefinição de senha
+const EMAILJS_SERVICE_ID = 'YOUR_SERVICE_ID';  // Substitua pelo seu ID de serviço do EmailJS
+const EMAILJS_USER_ID = 'YOUR_USER_ID';        // Substitua pelo seu User ID do EmailJS
+const INVITATION_TEMPLATE_ID = 'YOUR_INVITATION_TEMPLATE_ID';  // Template para convites
+const RESET_PASSWORD_TEMPLATE_ID = 'YOUR_RESET_PASSWORD_TEMPLATE_ID'; // Template para redefinição de senha
 
 // Inicialização do EmailJS
 const initEmailJS = () => {
@@ -41,7 +41,7 @@ export const sendEmail = async (options: EmailOptions): Promise<boolean> => {
       to_name: options.to.split('@')[0], // Usa a parte inicial do email como nome (você pode ajustar isso)
       subject: options.subject,
       message: options.body,
-      // Remova HTML do corpo para compatibilidade com diferentes provedores de email
+      // Remove HTML do corpo para compatibilidade com diferentes provedores de email
       plain_message: options.body.replace(/<[^>]*>?/gm, '')
     };
     
