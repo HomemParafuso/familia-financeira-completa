@@ -46,7 +46,7 @@ const GroupsPage: React.FC = () => {
   // Check if current user is a group admin of the selected group
   const isCurrentUserGroupAdmin = selectedGroup && 
     (user?.role === 'admin' || 
-     selectedGroup.members.some(m => m.userId === user?.id && m.role === 'admin'));
+     selectedGroup.members.some(m => m.userId === user?.id && m.role === 'manager'));
 
   const handleCreateGroup = () => {
     if (groupName.trim()) {

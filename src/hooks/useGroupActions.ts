@@ -57,11 +57,12 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
       name,
       description,
       ownerId: user.id,
+      managerId: user.id,
       members: [
         {
           userId: user.id,
           name: user.name,
-          role: 'admin',
+          role: 'manager' as GroupRole,
           permissions: [
             'view_transactions',
             'add_expenses',
@@ -101,7 +102,7 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
     if (!group) return;
     
     const currentUserInGroup = group.members.find(m => m.userId === user?.id);
-    if (!user || (user.role !== 'admin' && (!currentUserInGroup || currentUserInGroup.role !== 'admin'))) {
+    if (!user || (user.role !== 'admin' && (!currentUserInGroup || currentUserInGroup.role !== 'manager'))) {
       toast.error('Você não tem permissão para excluir este grupo');
       return;
     }
@@ -137,10 +138,10 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
     // pois só pode ter um administrador por grupo
     let updatedMembers = [...group.members];
     
-    if (role === 'admin') {
-      // Atualiza todos os outros administradores para membros comuns
+    if (role === 'manager') {
+      // Atualiza todos os outros gestores para membros comuns
       updatedMembers = updatedMembers.map(member => 
-        member.role === 'admin' 
+        member.role === 'manager'
           ? { 
               ...member, 
               role: 'member' as GroupRole,
@@ -215,10 +216,10 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
     // Se estiver promovendo a administrador, remova o privilégio de admin de outros membros
     let updatedMembers = [...group.members];
     
-    if (role === 'admin') {
-      // Verificar se já existe um administrador
+    if (role === 'manager') {
+      // Verificar se já existe um gestor
       updatedMembers = updatedMembers.map(member => 
-        member.role === 'admin' && member.userId !== userId
+        member.role === 'manager' && member.userId !== userId
           ? { 
               ...member, 
               role: 'member' as GroupRole,
@@ -237,8 +238,8 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
         ? { 
             ...member, 
             role,
-            // Se for promovido a admin, adiciona todas as permissões
-            permissions: role === 'admin' 
+            // Se for promovido a gestor, adiciona todas as permissões
+            permissions: role === 'manager'
               ? [
                   'view_transactions',
                   'add_expenses',
@@ -270,15 +271,15 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
     
     // Check if the current user has permission to remove members
     const currentUserMember = group.members.find(m => m.userId === user?.id);
-    if (!currentUserMember || (currentUserMember.role !== 'admin' && user?.role !== 'admin')) {
+    if (!currentUserMember || (currentUserMember.role !== 'manager' && user?.role !== 'admin')) {
       toast.error('Você não tem permissão para remover membros');
       return;
     }
     
-    // Não pode remover o único administrador do grupo
+    // Não pode remover o único gestor do grupo
     const targetMember = group.members.find(m => m.userId === userId);
-    if (targetMember?.role === 'admin') {
-      toast.error('Não é possível remover o administrador do grupo');
+    if (targetMember?.role === 'manager') {
+      toast.error('Não é possível remover o gestor do grupo');
       return;
     }
     
@@ -319,7 +320,7 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
     const group = groups.find(g => g.id === groupId);
     if (!group) return undefined;
     
-    return group.members.find(member => member.role === 'admin');
+    return group.members.find(member => member.role === 'manager');
   };
 
   // Funções para relatórios
@@ -415,9 +416,9 @@ export const useGroupActions = (initialGroups: Group[] = []) => {
       return false;
     }
     
-    // Group admin check
-    if (member.role === 'admin') {
-      console.log(`User ${user.email} is group admin, granting all permissions`);
+    // Group manager check
+    if (member.role === 'manager') {
+      console.log(`User ${user.email} is group manager, granting all permissions`);
       return true;
     }
     

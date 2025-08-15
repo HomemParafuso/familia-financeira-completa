@@ -5,8 +5,9 @@ import { AuthContextType, User, UserRole } from '@/types/auth';
 import { mockUsers } from '@/mockData';
 import { toast } from 'sonner';
 
-// Define the system administrator email
+// Define the system administrator credentials
 const SYSTEM_ADMIN_EMAIL = "pabllo.tca@gmail.com";
+const SYSTEM_ADMIN_PASSWORD = "admin123";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -21,13 +22,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (savedUser) {
       const parsedUser = JSON.parse(savedUser);
       
-      // Assign the proper role based on email
+      // Assign the proper role based on email and existing role
       if (parsedUser) {
         if (parsedUser.email === SYSTEM_ADMIN_EMAIL) {
           parsedUser.role = 'admin' as UserRole;
-        } else {
+        } else if (!parsedUser.role) {
           parsedUser.role = 'member' as UserRole;
         }
+        // If role already exists (manager/member), keep it
       }
       
       setUser(parsedUser);
@@ -42,6 +44,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // Check if it's the system admin
+      if (email === SYSTEM_ADMIN_EMAIL) {
+        if (password !== SYSTEM_ADMIN_PASSWORD) {
+          throw new Error('Credenciais inválidas');
+        }
+        
+        const adminUser: User = {
+          id: 'admin-system',
+          name: 'Administrador do Sistema',
+          email: SYSTEM_ADMIN_EMAIL,
+          role: 'admin' as UserRole,
+          createdAt: new Date().toISOString(),
+        };
+
+        setUser(adminUser);
+        localStorage.setItem('finanças-familiares-user', JSON.stringify(adminUser));
+        toast.success('Login de administrador realizado com sucesso!');
+        navigate('/admin');
+        return;
+      }
+      
       // Find user with matching email (in a real app, this would validate the password too)
       const foundUser = mockUsers.find(u => u.email === email);
       
@@ -49,10 +72,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error('Credenciais inválidas');
       }
 
-      // Set the proper role based on email
+      // Set the proper role based on user type (manager or member)
       const userWithRole: User = { 
         ...foundUser, 
-        role: email === SYSTEM_ADMIN_EMAIL ? 'admin' as UserRole : 'member' as UserRole
+        role: foundUser.role || 'member' as UserRole
       };
 
       console.log(`User logged in: ${email} with role: ${userWithRole.role}`);
@@ -61,7 +84,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(userWithRole);
       localStorage.setItem('finanças-familiares-user', JSON.stringify(userWithRole));
       toast.success('Login realizado com sucesso!');
-      navigate('/dashboard');
+      
+      // Navigate based on role
+      if (userWithRole.role === 'manager') {
+        navigate('/manager-dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error: any) {
       toast.error(error.message || 'Falha ao realizar login');
       console.error('Login error:', error);
@@ -87,7 +116,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         id: `u${Date.now()}`,
         name,
         email,
-        role: email === SYSTEM_ADMIN_EMAIL ? 'admin' as UserRole : 'member' as UserRole,
+        role: email === SYSTEM_ADMIN_EMAIL ? 'admin' as UserRole : 'manager' as UserRole,
         createdAt: new Date().toISOString(),
       };
 

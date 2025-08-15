@@ -9,13 +9,14 @@ export interface User {
   expirationDate?: string; // Data de expiração do acesso
 }
 
-export type UserRole = 'admin' | 'member';
+export type UserRole = 'admin' | 'manager' | 'member';
 
 export interface Group {
   id: string;
   name: string;
   description?: string;
-  ownerId: string;
+  ownerId: string; // ID do gestor (manager) responsável pelo grupo
+  managerId: string; // ID do gestor que criou o grupo
   members: GroupMember[];
   createdAt: string;
 }
@@ -27,7 +28,7 @@ export interface GroupMember {
   permissions: Permission[];
 }
 
-export type GroupRole = 'admin' | 'member';
+export type GroupRole = 'manager' | 'member';
 
 export type Permission = 
   | 'view_transactions' 

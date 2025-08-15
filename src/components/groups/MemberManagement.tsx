@@ -75,7 +75,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({
 
   // Check if current user is a group admin
   const currentUserMember = group.members.find(m => m.userId === user?.id);
-  const isGroupAdmin = currentUserMember?.role === 'admin' || user?.role === 'admin';
+  const isGroupAdmin = currentUserMember?.role === 'manager' || user?.role === 'admin';
 
   const handleAddMember = () => {
     onAddMember(newMemberEmail, newMemberName, newMemberRole, selectedPermissions);
@@ -143,14 +143,14 @@ const MemberManagement: React.FC<MemberManagementProps> = ({
               <TableRow key={member.userId}>
                 <TableCell>
                   <div className="flex items-center">
-                    {member.role === 'admin' && (
+                    {member.role === 'manager' && (
                       <Shield className="mr-2 h-4 w-4 text-amber-500" />
                     )}
                     <span>{member.name}</span>
                   </div>
                 </TableCell>
                 <TableCell>
-                  {member.role === 'admin' ? 'Administrador' : 'Membro'}
+                  {member.role === 'manager' ? 'Gestor' : 'Membro'}
                 </TableCell>
                 {isGroupAdmin && (
                   <TableCell>
@@ -166,15 +166,15 @@ const MemberManagement: React.FC<MemberManagementProps> = ({
                           <UserCog className="mr-2 h-4 w-4" />
                           Permissões
                         </DropdownMenuItem>
-                        {member.role !== 'admin' ? (
-                          <DropdownMenuItem onClick={() => handleUpdateRole(member.userId, 'admin')}>
+                        {member.role !== 'manager' ? (
+                          <DropdownMenuItem onClick={() => handleUpdateRole(member.userId, 'manager')}>
                             <Shield className="mr-2 h-4 w-4" />
-                            Tornar Administrador
+                            Tornar Gestor
                           </DropdownMenuItem>
                         ) : (
                           <DropdownMenuItem 
                             onClick={() => handleUpdateRole(member.userId, 'member')}
-                            disabled={group.members.filter(m => m.role === 'admin').length <= 1}
+                            disabled={group.members.filter(m => m.role === 'manager').length <= 1}
                           >
                             <Shield className="mr-2 h-4 w-4" />
                             Tornar Membro
@@ -237,7 +237,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({
                   <SelectValue placeholder="Selecione uma função" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="manager">Gestor</SelectItem>
                   <SelectItem value="member">Membro</SelectItem>
                 </SelectContent>
               </Select>

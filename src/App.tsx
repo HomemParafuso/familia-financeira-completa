@@ -21,6 +21,8 @@ import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
 import GroupsPage from "./pages/GroupsPage";
 import AdminPage from "./pages/AdminPage";
+import AdminDashboard from "./pages/AdminDashboard";
+import ManagerDashboard from "./pages/ManagerDashboard";
 import NotFound from "./pages/NotFound";
 
 // Auth protection HOC
@@ -81,7 +83,12 @@ const App = () => (
                   } />
                   <Route path="/admin" element={
                     <ProtectedRoute>
-                      <AdminPage />
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/manager-dashboard" element={
+                    <ProtectedRoute>
+                      <ManagerDashboard />
                     </ProtectedRoute>
                   } />
                   

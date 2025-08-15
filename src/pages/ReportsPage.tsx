@@ -50,7 +50,7 @@ const ReportsPage: React.FC = () => {
   // Obter membros do grupo atual
   const groupMembers = currentGroup?.members || [];
   const isGroupAdmin = currentGroup?.members.some(m => 
-    m.userId === currentGroup.ownerId && m.role === 'admin'
+    m.userId === currentGroup.ownerId && m.role === 'manager'
   );
   
   const canViewAllReports = canUserPerform('view_reports');
