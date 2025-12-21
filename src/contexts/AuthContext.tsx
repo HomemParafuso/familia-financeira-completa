@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (profileData) {
         setProfile(profileData as Profile);
@@ -44,11 +44,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .from('families')
             .select('*')
             .eq('id', profileData.family_id)
-            .single();
+            .maybeSingle();
 
           if (familyData) {
             setFamily(familyData as Family);
           }
+        } else {
+          setFamily(null);
         }
       }
 
@@ -57,10 +59,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (roleData) {
         setRole(roleData.role as AppRole);
+      } else {
+        setRole(null);
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
