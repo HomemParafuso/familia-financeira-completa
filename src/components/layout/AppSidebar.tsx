@@ -31,21 +31,16 @@ import { Button } from '@/components/ui/button';
 
 const managerMenuItems = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  { title: 'Receitas', icon: TrendingUp, path: '/revenues' },
-  { title: 'Despesas Básicas', icon: Building2, path: '/expenses/basic' },
-  { title: 'Financiamentos', icon: CreditCard, path: '/expenses/financing' },
-  { title: 'Despesas Eventuais', icon: CalendarClock, path: '/expenses/eventual' },
+  { title: 'Lançamentos', icon: CreditCard, path: '/transactions' },
   { title: 'Relatórios', icon: PieChart, path: '/reports' },
 ];
 
 const familyMenuItems = [
-  { title: 'Membros', icon: Users, path: '/family/members' },
-  { title: 'Permissões', icon: UserCog, path: '/family/permissions' },
+  { title: 'Gestão Familiar', icon: Users, path: '/family' },
 ];
 
 const adminMenuItems = [
-  { title: 'Gestores', icon: Users, path: '/admin/managers' },
-  { title: 'Configurações', icon: Settings, path: '/admin/settings' },
+  { title: 'Painel Admin', icon: Settings, path: '/admin' },
 ];
 
 export function AppSidebar() {
