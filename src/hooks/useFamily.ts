@@ -28,7 +28,7 @@ export function useCreateFamily() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ name, managerEmail }: { name: string; managerEmail: string }) => {
+    mutationFn: async ({ name, managerEmail, password }: { name: string; managerEmail: string; password: string }) => {
       // Create family
       const { data: family, error: familyError } = await supabase
         .from('families')
@@ -56,17 +56,34 @@ export function useCreateFamily() {
           .from('user_roles')
           .upsert({ user_id: existingProfile.id, role: 'family_manager' as AppRole });
       } else {
-        // Create invite for non-existing user
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
+        // Create new user with provided password
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: managerEmail,
+          password: password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+            data: {
+              full_name: `Gestor - ${name}`,
+            },
+          },
+        });
+
+        if (signUpError) throw signUpError;
+
+        if (signUpData.user) {
+          // Wait a bit for the trigger to create the profile
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          // Assign to family
           await supabase
-            .from('family_invites')
-            .insert({
-              family_id: family.id,
-              email: managerEmail,
-              invited_by: user.id,
-              role: 'family_manager' as AppRole,
-            });
+            .from('profiles')
+            .update({ family_id: family.id })
+            .eq('id', signUpData.user.id);
+
+          // Assign manager role
+          await supabase
+            .from('user_roles')
+            .insert({ user_id: signUpData.user.id, role: 'family_manager' as AppRole });
         }
       }
 

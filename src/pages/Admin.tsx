@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Plus, Building2, Users, Crown, Trash2 } from 'lucide-react';
+import { Plus, Building2, Users, Crown, RefreshCw, Copy, Eye, EyeOff } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { Button } from '@/components/ui/button';
@@ -26,13 +26,26 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useFamilies, useCreateFamily, useFamilyMembers } from '@/hooks/useFamily';
 import { Family } from '@/types/database';
+import { toast } from 'sonner';
 
 const createFamilySchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
   managerEmail: z.string().email('Email inválido'),
+  password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres'),
 });
 
 type CreateFamilyForm = z.infer<typeof createFamilySchema>;
+
+function generatePassword(length = 12): string {
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*';
+  let password = '';
+  const array = new Uint32Array(length);
+  crypto.getRandomValues(array);
+  for (let i = 0; i < length; i++) {
+    password += charset[array[i] % charset.length];
+  }
+  return password;
+}
 
 function FamilyCard({ family }: { family: Family }) {
   const { data: members = [], isLoading } = useFamilyMembers(family.id);
@@ -89,6 +102,7 @@ function FamilyCard({ family }: { family: Family }) {
 
 export default function AdminPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { data: families = [], isLoading } = useFamilies();
   const createFamily = useCreateFamily();
 
@@ -97,13 +111,32 @@ export default function AdminPage() {
     defaultValues: {
       name: '',
       managerEmail: '',
+      password: '',
     },
   });
+
+  // Generate password when dialog opens
+  useEffect(() => {
+    if (dialogOpen) {
+      form.setValue('password', generatePassword());
+    }
+  }, [dialogOpen, form]);
+
+  const handleGeneratePassword = () => {
+    form.setValue('password', generatePassword());
+  };
+
+  const handleCopyPassword = () => {
+    const password = form.getValues('password');
+    navigator.clipboard.writeText(password);
+    toast.success('Senha copiada!');
+  };
 
   const onSubmit = async (data: CreateFamilyForm) => {
     await createFamily.mutateAsync({
       name: data.name,
       managerEmail: data.managerEmail,
+      password: data.password,
     });
     setDialogOpen(false);
     form.reset();
@@ -213,6 +246,58 @@ export default function AdminPage() {
                   )}
                 />
 
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Senha do Gestor</FormLabel>
+                      <FormControl>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <Input
+                              type={showPassword ? 'text' : 'password'}
+                              placeholder="Senha gerada automaticamente"
+                              {...field}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-0 top-0 h-full"
+                              onClick={() => setShowPassword(!showPassword)}
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={handleGeneratePassword}
+                            title="Gerar nova senha"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={handleCopyPassword}
+                            title="Copiar senha"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <div className="flex gap-2 pt-4">
                   <Button
                     type="button"
