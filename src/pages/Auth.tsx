@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,11 +26,22 @@ const signupSchema = loginSchema.extend({
 
 export default function AuthPage() {
   const navigate = useNavigate();
-  const { signIn, signUp } = useAuth();
+  const { user, role, signIn, signUp } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ email: '', password: '', confirmPassword: '', fullName: '' });
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user && role) {
+      if (role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
+    }
+  }, [user, role, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,10 +52,31 @@ export default function AuthPage() {
     }
     setLoading(true);
     const { error } = await signIn(loginData.email, loginData.password);
-    setLoading(false);
+    
     if (error) {
+      setLoading(false);
       toast({ title: 'Erro ao entrar', description: 'Email ou senha incorretos', variant: 'destructive' });
+      return;
+    }
+
+    // Check if user is admin to redirect appropriately
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (authUser) {
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', authUser.id)
+        .maybeSingle();
+
+      setLoading(false);
+      if (roleData?.role === 'admin') {
+        toast({ title: 'Bem-vindo, Admin!', description: 'Acesso ao painel administrativo' });
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
     } else {
+      setLoading(false);
       navigate('/dashboard');
     }
   };
