@@ -422,7 +422,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      get_user_family_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
