@@ -18,10 +18,13 @@ import { useNavigate } from 'react-router-dom';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { family } = useAuth();
+  const { family, role } = useAuth();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const { data: transactions = [], isLoading } = useTransactions(selectedYear);
   const projection = useFinancialProjection(transactions, selectedYear);
+
+  // Admin without family - show admin-specific dashboard
+  const isAdminWithoutFamily = role === 'admin' && !family;
 
   const today = new Date();
 
@@ -52,6 +55,56 @@ export default function DashboardPage() {
       currency: 'BRL',
     }).format(value);
   };
+
+  // Admin without family - redirect to admin panel or show simplified view
+  if (isAdminWithoutFamily) {
+    return (
+      <AuthGuard>
+        <AppLayout title="Dashboard">
+          <div className="space-y-6 animate-fade-in">
+            <div>
+              <h2 className="font-display text-2xl font-bold">
+                Painel Administrativo
+              </h2>
+              <p className="text-muted-foreground">
+                Você está logado como administrador do sistema
+              </p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/admin')}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5 text-primary" />
+                    Gerenciar Famílias
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    Visualize e gerencie todas as famílias cadastradas no sistema.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-warning" />
+                    Acesso Rápido
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    Use o menu lateral para acessar o Painel Admin e gerenciar o sistema.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </AppLayout>
+      </AuthGuard>
+    );
+  }
 
   if (isLoading) {
     return (
