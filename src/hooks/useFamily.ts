@@ -23,71 +23,49 @@ export function useFamilies() {
   });
 }
 
-// Create a new family (admin only)
+// Create a new family (admin only) using edge function
 export function useCreateFamily() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ name, managerEmail, password }: { name: string; managerEmail: string; password: string }) => {
-      // Create family
-      const { data: family, error: familyError } = await supabase
-        .from('families')
-        .insert({ name })
-        .select()
-        .single();
+    mutationFn: async ({ 
+      name, 
+      managerName,
+      managerEmail, 
+      password 
+    }: { 
+      name: string; 
+      managerName: string;
+      managerEmail: string; 
+      password: string 
+    }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
 
-      if (familyError) throw familyError;
-
-      // Check if user exists
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', managerEmail)
-        .maybeSingle();
-
-      if (existingProfile) {
-        // User exists - assign them to family and give manager role
-        await supabase
-          .from('profiles')
-          .update({ family_id: family.id })
-          .eq('id', existingProfile.id);
-
-        await supabase
-          .from('user_roles')
-          .upsert({ user_id: existingProfile.id, role: 'family_manager' as AppRole });
-      } else {
-        // Create new user with provided password
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: managerEmail,
-          password: password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              full_name: `Gestor - ${name}`,
-            },
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-family-manager`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
           },
-        });
-
-        if (signUpError) throw signUpError;
-
-        if (signUpData.user) {
-          // Wait a bit for the trigger to create the profile
-          await new Promise(resolve => setTimeout(resolve, 1000));
-
-          // Assign to family
-          await supabase
-            .from('profiles')
-            .update({ family_id: family.id })
-            .eq('id', signUpData.user.id);
-
-          // Assign manager role
-          await supabase
-            .from('user_roles')
-            .insert({ user_id: signUpData.user.id, role: 'family_manager' as AppRole });
+          body: JSON.stringify({
+            familyName: name,
+            managerName,
+            managerEmail,
+            managerPassword: password,
+          }),
         }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create family');
       }
 
-      return family;
+      return result.family;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['families'] });
@@ -95,7 +73,7 @@ export function useCreateFamily() {
     },
     onError: (error) => {
       console.error('Error creating family:', error);
-      toast.error('Erro ao criar família');
+      toast.error(error instanceof Error ? error.message : 'Erro ao criar família');
     },
   });
 }
