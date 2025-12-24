@@ -30,8 +30,9 @@ import { toast } from 'sonner';
 
 const createFamilySchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
+  managerName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
   managerEmail: z.string().email('Email inválido'),
-  password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres'),
+  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
 });
 
 type CreateFamilyForm = z.infer<typeof createFamilySchema>;
@@ -110,6 +111,7 @@ export default function AdminPage() {
     resolver: zodResolver(createFamilySchema),
     defaultValues: {
       name: '',
+      managerName: '',
       managerEmail: '',
       password: '',
     },
@@ -135,6 +137,7 @@ export default function AdminPage() {
   const onSubmit = async (data: CreateFamilyForm) => {
     await createFamily.mutateAsync({
       name: data.name,
+      managerName: data.managerName,
       managerEmail: data.managerEmail,
       password: data.password,
     });
@@ -222,6 +225,20 @@ export default function AdminPage() {
                       <FormLabel>Nome da Família</FormLabel>
                       <FormControl>
                         <Input placeholder="Ex: Família Silva" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="managerName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome do Gestor</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex: João Silva" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
