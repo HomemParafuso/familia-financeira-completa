@@ -2,3 +2,6 @@ project_id = "uqwlmwbwcplzwukkhzyj"
 
 [functions.send-notifications]
 verify_jwt = false
+
+[functions.create-family-manager]
+verify_jwt = true
