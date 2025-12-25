@@ -4,31 +4,57 @@ import { AuthGuard } from '@/components/auth/AuthGuard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useFinancialProjection } from '@/hooks/useFinancialProjection';
-import { KPICards, ExpenseBreakdown } from '@/components/dashboard/KPICards';
 import { ProjectionChart } from '@/components/dashboard/ProjectionChart';
+import { TransactionFormDialog } from '@/components/transactions/TransactionFormDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, AlertCircle, Clock } from 'lucide-react';
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  AlertCircle, 
+  Clock, 
+  TrendingUp, 
+  TrendingDown, 
+  Wallet,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  Receipt
+} from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { Transaction, TransactionType } from '@/types/database';
+
+const MONTH_NAMES = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { family, role } = useAuth();
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const currentDate = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const { data: transactions = [], isLoading } = useTransactions(selectedYear);
   const projection = useFinancialProjection(transactions, selectedYear);
+  
+  // Transaction form dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [defaultType, setDefaultType] = useState<TransactionType>('expense');
+
+  // Get current month projection
+  const currentMonthProjection = projection.monthlyProjections[selectedMonth];
 
   // Admin without family - show admin-specific dashboard
   const isAdminWithoutFamily = role === 'admin' && !family;
 
   const today = new Date();
 
-  // Get upcoming due transactions (next 7 days)
+  // Get upcoming due transactions for selected month (next 7 days from today if current month)
   const upcomingTransactions = transactions
     .filter((t) => {
       if (t.is_paid) return false;
@@ -53,7 +79,32 @@ export default function DashboardPage() {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(value);
+  };
+
+  const handlePreviousMonth = () => {
+    if (selectedMonth === 0) {
+      setSelectedMonth(11);
+      setSelectedYear(y => y - 1);
+    } else {
+      setSelectedMonth(m => m - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (selectedMonth === 11) {
+      setSelectedMonth(0);
+      setSelectedYear(y => y + 1);
+    } else {
+      setSelectedMonth(m => m + 1);
+    }
+  };
+
+  const handleNewTransaction = (type: TransactionType) => {
+    setDefaultType(type);
+    setDialogOpen(true);
   };
 
   // Admin without family - redirect to admin panel or show simplified view
@@ -127,47 +178,171 @@ export default function DashboardPage() {
     <AuthGuard requireFamily>
       <AppLayout title="Dashboard">
         <div className="space-y-6 animate-fade-in">
-          {/* Header with Year Selector */}
-          <div className="flex flex-col sm:flex-row justify-between gap-4">
-            <div>
-              <h2 className="font-display text-2xl font-bold">
-                Olá! Bem-vindo ao {family?.name || 'FinFamily'}
-              </h2>
-              <p className="text-muted-foreground">
-                Acompanhe a projeção financeira anual da sua família
-              </p>
+          {/* Header with Month Selector and Action Buttons */}
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row justify-between gap-4">
+              <div>
+                <h2 className="font-display text-2xl font-bold">
+                  Olá! Bem-vindo ao {family?.name || 'FinFamily'}
+                </h2>
+                <p className="text-muted-foreground">
+                  Acompanhe as finanças do mês
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handlePreviousMonth}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="min-w-[140px] text-center font-semibold text-lg">
+                  {MONTH_NAMES[selectedMonth]} {selectedYear}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleNextMonth}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
               <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setSelectedYear((y) => y - 1)}
+                onClick={() => handleNewTransaction('revenue')}
+                className="bg-revenue hover:bg-revenue/90"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ArrowUpCircle className="mr-2 h-4 w-4" />
+                Nova Receita
               </Button>
-              <span className="min-w-[80px] text-center font-semibold text-lg">
-                {selectedYear}
-              </span>
               <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setSelectedYear((y) => y + 1)}
+                onClick={() => handleNewTransaction('expense')}
+                className="bg-expense hover:bg-expense/90"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ArrowDownCircle className="mr-2 h-4 w-4" />
+                Nova Despesa
               </Button>
             </div>
           </div>
 
-          {/* KPI Cards */}
-          <KPICards projection={projection} />
+          {/* Monthly KPI Cards */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Receitas do Mês
+                </CardTitle>
+                <div className="p-2 rounded-full bg-revenue/10">
+                  <TrendingUp className="h-4 w-4 text-revenue" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-revenue">
+                  {formatCurrency(currentMonthProjection?.revenues || 0)}
+                </div>
+                <p className="text-xs text-muted-foreground">{MONTH_NAMES[selectedMonth]}</p>
+              </CardContent>
+            </Card>
 
-          {/* Charts Section */}
-          <div className="grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <ProjectionChart projections={projection.monthlyProjections} year={selectedYear} />
-            </div>
-            <ExpenseBreakdown projection={projection} />
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Despesas do Mês
+                </CardTitle>
+                <div className="p-2 rounded-full bg-expense/10">
+                  <TrendingDown className="h-4 w-4 text-expense" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-expense">
+                  {formatCurrency(currentMonthProjection?.expenses || 0)}
+                </div>
+                <p className="text-xs text-muted-foreground">{MONTH_NAMES[selectedMonth]}</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Saldo do Mês
+                </CardTitle>
+                <div className={cn('p-2 rounded-full', (currentMonthProjection?.balance || 0) >= 0 ? 'bg-revenue/10' : 'bg-expense/10')}>
+                  <Wallet className={cn('h-4 w-4', (currentMonthProjection?.balance || 0) >= 0 ? 'text-revenue' : 'text-expense')} />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className={cn('text-2xl font-bold', (currentMonthProjection?.balance || 0) >= 0 ? 'text-revenue' : 'text-expense')}>
+                  {formatCurrency(currentMonthProjection?.balance || 0)}
+                </div>
+                <p className="text-xs text-muted-foreground">Resultado mensal</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Saldo Acumulado
+                </CardTitle>
+                <div className={cn('p-2 rounded-full', (currentMonthProjection?.accumulatedBalance || 0) >= 0 ? 'bg-revenue/10' : 'bg-expense/10')}>
+                  <Receipt className={cn('h-4 w-4', (currentMonthProjection?.accumulatedBalance || 0) >= 0 ? 'text-revenue' : 'text-expense')} />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className={cn('text-2xl font-bold', (currentMonthProjection?.accumulatedBalance || 0) >= 0 ? 'text-revenue' : 'text-expense')}>
+                  {formatCurrency(currentMonthProjection?.accumulatedBalance || 0)}
+                </div>
+                <p className="text-xs text-muted-foreground">Até {MONTH_NAMES[selectedMonth]}</p>
+              </CardContent>
+            </Card>
           </div>
+
+          {/* Monthly Expense Breakdown */}
+          {currentMonthProjection && currentMonthProjection.expenses > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Receipt className="h-4 w-4" />
+                  Despesas de {MONTH_NAMES[selectedMonth]}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[
+                  { label: 'Básicas', value: currentMonthProjection.basicExpenses, color: 'bg-expense-basic', textColor: 'text-expense-basic' },
+                  { label: 'Financiamentos', value: currentMonthProjection.financingExpenses, color: 'bg-expense-financing', textColor: 'text-expense-financing' },
+                  { label: 'Eventuais', value: currentMonthProjection.eventualExpenses, color: 'bg-expense-eventual', textColor: 'text-expense-eventual' },
+                ].map((group, index) => {
+                  const percent = currentMonthProjection.expenses > 0 
+                    ? ((group.value / currentMonthProjection.expenses) * 100).toFixed(0)
+                    : '0';
+                  return (
+                    <div key={index}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className={cn('font-medium', group.textColor)}>
+                          {group.label}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {formatCurrency(group.value)} ({percent}%)
+                        </span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={cn('h-full rounded-full transition-all', group.color)}
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Annual Chart */}
+          <ProjectionChart projections={projection.monthlyProjections} year={selectedYear} />
 
           {/* Alerts Section */}
           <div className="grid gap-6 md:grid-cols-2">
@@ -261,6 +436,13 @@ export default function DashboardPage() {
             </Card>
           </div>
         </div>
+
+        {/* Transaction Form Dialog */}
+        <TransactionFormDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          defaultType={defaultType}
+        />
       </AppLayout>
     </AuthGuard>
   );
