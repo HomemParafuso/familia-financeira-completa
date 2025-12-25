@@ -12,13 +12,18 @@ interface AuthGuardProps {
 
 export function AuthGuard({ children, allowedRoles, requireFamily = false }: AuthGuardProps) {
   const navigate = useNavigate();
-  const { user, role, family, loading } = useAuth();
+  const { user, role, family, profile, loading } = useAuth();
 
   useEffect(() => {
     if (!loading) {
       // Not authenticated
       if (!user) {
         navigate('/auth');
+        return;
+      }
+
+      // Still loading profile data - wait
+      if (user && !profile && !role) {
         return;
       }
 
@@ -34,7 +39,7 @@ export function AuthGuard({ children, allowedRoles, requireFamily = false }: Aut
         return;
       }
     }
-  }, [user, role, family, loading, navigate, allowedRoles, requireFamily]);
+  }, [user, role, family, profile, loading, navigate, allowedRoles, requireFamily]);
 
   if (loading) {
     return (

@@ -25,8 +25,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<AppRole | null>(null);
   const [family, setFamily] = useState<Family | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(false);
 
   const fetchUserData = async (userId: string) => {
+    setDataLoading(true);
     try {
       // Fetch profile
       const { data: profileData } = await supabase
@@ -48,10 +50,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           if (familyData) {
             setFamily(familyData as Family);
+          } else {
+            setFamily(null);
           }
         } else {
           setFamily(null);
         }
+      } else {
+        setProfile(null);
+        setFamily(null);
       }
 
       // Fetch role
@@ -68,19 +75,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
+    } finally {
+      setDataLoading(false);
     }
   };
 
   useEffect(() => {
+    let isMounted = true;
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        if (!isMounted) return;
+        
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Wait for user data to be fetched before setting loading to false
-          await fetchUserData(session.user.id);
+          // Defer Supabase calls with setTimeout to avoid deadlock
+          setTimeout(() => {
+            if (isMounted) {
+              fetchUserData(session.user.id);
+            }
+          }, 0);
         } else {
           setProfile(null);
           setRole(null);
@@ -98,18 +115,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
+      
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        await fetchUserData(session.user.id);
+        fetchUserData(session.user.id).finally(() => {
+          if (isMounted) setLoading(false);
+        });
+      } else {
+        setLoading(false);
       }
-
-      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
